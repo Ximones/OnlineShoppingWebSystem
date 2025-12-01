@@ -1,0 +1,4 @@
+ALTER TABLE users
+ADD COLUMN check_in_streak INT NOT NULL DEFAULT 0,
+ADD COLUMN last_check_in_at DATETIME NULL;
+

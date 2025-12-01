@@ -15,19 +15,39 @@ class Order
         $this->db = db();
     }
 
-    public function createFromCart(int $userId, int $cartId, array $shipping): int
+    public function createFromCart(int $userId, int $cartId, array $shipping, array $options = []): int
     {
-        return db_transaction(function (PDO $pdo) use ($userId, $cartId, $shipping) {
-            $items = $this->cartItems($cartId);
+        require_once __DIR__ . '/../lib/rewards.php';
+        
+        return db_transaction(function (PDO $pdo) use ($userId, $cartId, $shipping, $options) {
+            $selectedIds = array_filter(array_map('intval', $options['item_ids'] ?? []));
+            $items = $this->cartItems($cartId, $selectedIds);
+            if (empty($items)) {
+                throw new \RuntimeException('No items selected for checkout.');
+            }
+
             $total = array_reduce($items, function ($carry, $item) {
                 return $carry + ($item['price'] * $item['quantity']);
-            }, 0);
+            }, 0.0);
+
+            $pointsRequested = (int) ($options['points_redeemed'] ?? 0);
+            $pointsRequested = (int) floor($pointsRequested / 100) * 100;
+
+            $stm = $pdo->prepare('SELECT reward_points FROM users WHERE id = ? FOR UPDATE');
+            $stm->execute([$userId]);
+            $currentPoints = (float) $stm->fetchColumn();
+            $maxPointsFromBalance = (int) floor($currentPoints);
+            $maxPointsFromTotal = (int) floor($total * 100);
+            $pointsRedeemed = min($pointsRequested, $maxPointsFromBalance - ($maxPointsFromBalance % 100), $maxPointsFromTotal);
+            $pointsRedeemed = max(0, $pointsRedeemed);
+            $discount = $pointsRedeemed / 100;
+            $payableTotal = max(0, $total - $discount);
 
             $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address) VALUES (?, ?, ?, "pending", ?, ?, ?)');
             $stm->execute([
                 $userId,
                 $cartId,
-                $total,
+                $payableTotal,
                 $shipping['name'],
                 $shipping['phone'],
                 $shipping['address'],
@@ -39,17 +59,50 @@ class Order
                 $stm->execute([$orderId, $item['product_id'], $item['quantity'], $item['price']]);
             }
 
-            $pdo->prepare('UPDATE carts SET status = "checked_out", updated_at = NOW() WHERE id = ?')->execute([$cartId]);
-            $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([$cartId]);
+            if ($pointsRedeemed > 0) {
+                $pdo->prepare('UPDATE users SET reward_points = GREATEST(0, reward_points - ?), updated_at = NOW() WHERE id = ?')->execute([$pointsRedeemed, $userId]);
+            }
+
+            $pointsEarned = calculate_reward_points($payableTotal);
+            if ($pointsEarned > 0) {
+                $pdo->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')->execute([$pointsEarned, $userId]);
+            }
+
+            $stm = $pdo->prepare('SELECT reward_points FROM users WHERE id = ?');
+            $stm->execute([$userId]);
+            $userPoints = (float) $stm->fetchColumn();
+            $newTier = calculate_reward_tier($userPoints);
+            $pdo->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
+
+            if ($selectedIds) {
+                $in = implode(',', array_fill(0, count($selectedIds), '?'));
+                $pdo->prepare("DELETE FROM cart_items WHERE id IN ($in)")->execute($selectedIds);
+            } else {
+                $pdo->prepare('DELETE FROM cart_items WHERE cart_id = ?')->execute([$cartId]);
+            }
+
+            $stm = $pdo->prepare('SELECT COUNT(*) FROM cart_items WHERE cart_id = ?');
+            $stm->execute([$cartId]);
+            $remaining = (int) $stm->fetchColumn();
+            if ($remaining === 0) {
+                $pdo->prepare('UPDATE carts SET status = "checked_out", updated_at = NOW() WHERE id = ?')->execute([$cartId]);
+            }
 
             return $orderId;
         });
     }
 
-    public function cartItems(int $cartId): array
+    public function cartItems(int $cartId, array $itemIds = []): array
     {
-        $stm = $this->db->prepare('SELECT ci.*, p.price FROM cart_items ci INNER JOIN products p ON p.id = ci.product_id WHERE ci.cart_id = ?');
-        $stm->execute([$cartId]);
+        $sql = 'SELECT ci.*, p.price FROM cart_items ci INNER JOIN products p ON p.id = ci.product_id WHERE ci.cart_id = ?';
+        $params = [$cartId];
+        if (!empty($itemIds)) {
+            $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+            $sql .= " AND ci.id IN ($placeholders)";
+            $params = array_merge($params, $itemIds);
+        }
+        $stm = $this->db->prepare($sql);
+        $stm->execute($params);
         return $stm->fetchAll();
     }
 

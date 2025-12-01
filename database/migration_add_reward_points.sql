@@ -1,0 +1,4 @@
+ALTER TABLE users 
+ADD COLUMN reward_points DECIMAL(10,2) DEFAULT 0 NOT NULL,
+ADD COLUMN reward_tier VARCHAR(20) DEFAULT 'bronze' NOT NULL;
+

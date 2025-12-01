@@ -8,6 +8,7 @@ require_once __DIR__ . '/lib/html.php';
 require_once __DIR__ . '/lib/validation.php';
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/upload.php';
+require_once __DIR__ . '/lib/rewards.php';
 
 require_once __DIR__ . '/core/Controller.php';
 require_once __DIR__ . '/core/Router.php';

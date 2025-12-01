@@ -18,6 +18,10 @@ CREATE TABLE users (
     avatar VARCHAR(255),
     password_hash VARCHAR(255) NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
+    reward_points DECIMAL(10,2) NOT NULL DEFAULT 0,
+    reward_tier VARCHAR(20) NOT NULL DEFAULT 'bronze',
+    check_in_streak INT NOT NULL DEFAULT 0,
+    last_check_in_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

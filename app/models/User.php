@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DateTimeImmutable;
 use PDO;
 use function db;
 
@@ -63,6 +64,88 @@ class User
     {
         $stm = $this->db->prepare('UPDATE users SET avatar = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([$path, $id]);
+    }
+
+    /**
+     * Handle daily check-in logic and reward distribution.
+     *
+     * @return array{status:string,streak:int,points:int}
+     */
+    public function recordDailyCheckIn(int $id): array
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            return [
+                'status' => 'not_found',
+                'streak' => 0,
+                'points' => 0,
+            ];
+        }
+
+        $pointsMap = [
+            1 => 1,
+            2 => 5,
+            3 => 10,
+            4 => 15,
+            5 => 20,
+            6 => 25,
+            7 => 100,
+        ];
+
+        $today = new DateTimeImmutable('today');
+        $lastCheckIn = !empty($user['last_check_in_at'])
+            ? (new DateTimeImmutable($user['last_check_in_at']))->setTime(0, 0)
+            : null;
+
+        if ($lastCheckIn && $lastCheckIn->format('Y-m-d') === $today->format('Y-m-d')) {
+            return [
+                'status' => 'already_checked_in',
+                'streak' => (int) $user['check_in_streak'],
+                'points' => 0,
+            ];
+        }
+
+        $streak = 1;
+        if ($lastCheckIn) {
+            $diffDays = (int) $lastCheckIn->diff($today)->days;
+            if ($diffDays === 1) {
+                $streak = min(7, (int) $user['check_in_streak'] + 1);
+            }
+        }
+
+        $pointsEarned = $pointsMap[$streak] ?? 1;
+
+        $stm = $this->db->prepare('UPDATE users SET check_in_streak = ?, last_check_in_at = NOW(), reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?');
+        $stm->execute([$streak, $pointsEarned, $id]);
+
+        $this->updateRewardTier($id);
+
+        return [
+            'status' => 'checked_in',
+            'streak' => $streak,
+            'points' => $pointsEarned,
+        ];
+    }
+
+    public function addRewardPoints(int $id, float $points): void
+    {
+        $stm = $this->db->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?');
+        $stm->execute([$points, $id]);
+        $this->updateRewardTier($id);
+    }
+
+    public function updateRewardTier(int $id): void
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            return;
+        }
+
+        require_once __DIR__ . '/../lib/rewards.php';
+        $newTier = calculate_reward_tier((float)$user['reward_points']);
+        
+        $stm = $this->db->prepare('UPDATE users SET reward_tier = ?, updated_at = NOW() WHERE id = ?');
+        $stm->execute([$newTier, $id]);
     }
 
     public function listMembers(string $keyword = ''): array
