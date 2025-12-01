@@ -1,0 +1,28 @@
+<header class="site-header">
+    <div class="container header-flex">
+        <a href="<?= asset('?module=shop&action=home'); ?>" class="logo"><?= APP_NAME; ?></a>
+        <nav class="nav">
+            <a href="?module=shop&action=catalog">Products</a>
+            <?php if (auth_user()): ?>
+                <a href="?module=cart&action=index">Cart</a>
+                <a href="?module=orders&action=history">Orders</a>
+                <a href="?module=profile&action=index">Profile</a>
+                <?php if (is_admin()): ?>
+                    <div class="dropdown">
+                        <button class="dropdown-toggle">Admin</button>
+                        <div class="dropdown-menu">
+                            <a href="?module=admin&resource=members&action=index">Members</a>
+                            <a href="?module=admin&resource=products&action=index">Products</a>
+                            <a href="?module=orders&action=admin">Orders</a>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                <a href="?module=auth&action=logout">Logout</a>
+            <?php else: ?>
+                <a href="?module=auth&action=login">Login</a>
+                <a href="?module=auth&action=register">Register</a>
+            <?php endif; ?>
+        </nav>
+    </div>
+</header>
+
