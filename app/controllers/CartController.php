@@ -8,11 +8,13 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\SavedAddress;
 use App\Models\User;
+use App\Models\Payment;
 use App\Models\UserVoucher;
 
 class CartController extends Controller
 {
     private const CHECKOUT_SESSION_KEY = 'checkout_context';
+    private const PAYLATER_CREDIT_LIMIT = 10000.0;
 
     private Cart $cart;
     private Product $products;
@@ -20,6 +22,7 @@ class CartController extends Controller
     private User $users;
     private SavedAddress $savedAddresses;
     private UserVoucher $userVouchers;
+    private Payment $payments;
     /**
      * Simple shipping options: code => [label, fee]
      * Fee is in RM.
@@ -38,6 +41,7 @@ class CartController extends Controller
         $this->users = new User();
         $this->savedAddresses = new SavedAddress();
         $this->userVouchers = new UserVoucher();
+        $this->payments = new Payment();
     }
 
     public function index(): void
@@ -147,7 +151,66 @@ class CartController extends Controller
             'shipping_phone' => ['required' => 'Phone is required.'],
             'shipping_address' => ['required' => 'Address is required.'],
         ])) {
-            $pricingSummary = $this->calculatePricingSummary($items, $this->users->find($userId), $usePoints, $shippingMethod, $voucherCode);
+            $user = $this->users->find($userId);
+            $userVouchers = $this->userVouchers->activeForUser($userId);
+            $orderCount = $this->orders->countByUser($userId);
+            $selectedVoucher = null;
+            if ($voucherCode !== '') {
+                foreach ($userVouchers as $uv) {
+                    if (strcasecmp($uv['code'], $voucherCode) === 0) {
+                        $selectedVoucher = $uv;
+                        break;
+                    }
+                }
+            }
+
+            $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
+
+            $paymentMethod = post('payment_method', 'Online Banking');
+            $paylaterTenure = (int) post('paylater_tenure', 3);
+            if (!in_array($paylaterTenure, [3, 6, 12], true)) {
+                $paylaterTenure = 3;
+            }
+
+            $orderStatus = $paymentMethod === 'PayLater' ? 'pending_payment' : 'pending';
+
+            // Compute PayLater charges and enforce credit limit
+            $amount = (float) $pricingSummary['payable_total'];
+            $interestRate = 0.0;
+            $paylaterTotal = $amount;
+            if ($paymentMethod === 'PayLater' && $amount > 0) {
+                if ($paylaterTenure === 6) {
+                    $interestRate = 0.015;
+                } elseif ($paylaterTenure === 12) {
+                    $interestRate = 0.025;
+                } else {
+                    $interestRate = 0.0;
+                }
+                $paylaterTotal = round($amount * (1 + $interestRate), 2);
+
+                // Use credit limit only on principal (amount), not interest
+                $outstandingPrincipal = $this->payments->outstandingPayLaterPrincipal($userId);
+                $availablePrincipal = max(0.0, self::PAYLATER_CREDIT_LIMIT - $outstandingPrincipal);
+                $principalUsed = min($amount, $availablePrincipal);
+                if ($principalUsed <= 0) {
+                    flash('danger', 'Your PayLater credit limit of RM ' . number_format(self::PAYLATER_CREDIT_LIMIT, 2) . ' is fully used. Please pay existing bills first.');
+                    redirect('?module=cart&action=checkout');
+                }
+
+                $interestTotal = $principalUsed * $interestRate;
+                $principalImmediate = max(0.0, $amount - $principalUsed);
+
+                // Total financed via PayLater (principal + interest on that principal)
+                $paylaterTotal = round($principalUsed + $interestTotal, 2);
+
+                // Compute per-instalment principal & full payment
+                $principalPerMonth = floor(($principalUsed / $paylaterTenure) * 100) / 100;
+                $principalLast = round($principalUsed - $principalPerMonth * ($paylaterTenure - 1), 2);
+
+                $paymentPerMonth = floor(($paylaterTotal / $paylaterTenure) * 100) / 100;
+                $paymentLast = round($paylaterTotal - $paymentPerMonth * ($paylaterTenure - 1), 2);
+            }
+
             $orderId = $this->orders->createFromCart($userId, $cartId, [
                 'name' => post('shipping_name'),
                 'phone' => post('shipping_phone'),
@@ -158,7 +221,48 @@ class CartController extends Controller
                 'shipping_fee' => $pricingSummary['shipping_fee'],
                 'voucher_discount' => $pricingSummary['voucher_discount'],
                 'voucher_code' => $pricingSummary['voucher_code'],
+                'order_status' => $orderStatus,
             ]);
+
+            // Record payment(s)
+            if ($amount > 0) {
+                if ($paymentMethod === 'PayLater') {
+                    // Create PayLater instalments (principal + interest)
+                    $startDate = new \DateTimeImmutable('today');
+                    for ($i = 1; $i <= $paylaterTenure; $i++) {
+                        $isLast = $i === $paylaterTenure;
+                        $instPrincipal = $isLast ? $principalLast : $principalPerMonth;
+                        $instAmount = $isLast ? $paymentLast : $paymentPerMonth;
+                         $dueDate = $startDate->modify('+' . $i . ' month')->format('Y-m-d');
+                        $this->payments->create(
+                            $orderId,
+                            'PayLater',
+                            $instAmount,
+                            $instPrincipal,
+                            'pending',
+                            null,
+                            $paylaterTenure,
+                            $interestRate * 100,
+                            $dueDate
+                        );
+                    }
+
+                    // If principal exceeds available credit, remaining part must be paid immediately
+                    if (!empty($principalImmediate) && $principalImmediate > 0) {
+                        $upfrontMethod = post('paylater_upfront_method', 'Online Banking');
+                        $this->payments->create(
+                            $orderId,
+                            $upfrontMethod,
+                            $principalImmediate,
+                            $principalImmediate,
+                            'completed'
+                        );
+                    }
+                } else {
+                    // Non-PayLater: single immediate payment
+                    $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
+                }
+            }
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
             flash('success', 'Order created.');
             redirect("?module=orders&action=detail&id=$orderId");
@@ -168,7 +272,22 @@ class CartController extends Controller
         $savedAddresses = $this->savedAddresses->findByUser($userId);
         $userVouchers = $this->userVouchers->activeForUser($userId);
         $orderCount = $this->orders->countByUser($userId);
-        $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $voucherCode);
+        $outstandingPayLater = $this->payments->outstandingPayLaterPrincipal($userId);
+
+        // Find selected voucher row (if any) for current user
+        $selectedVoucher = null;
+        if ($voucherCode !== '') {
+            foreach ($userVouchers as $uv) {
+                if (strcasecmp($uv['code'], $voucherCode) === 0) {
+                    $selectedVoucher = $uv;
+                    break;
+                }
+            }
+        }
+
+        $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
+        // Use effective voucher code from pricing summary (empty if not applicable)
+        $voucherCode = $pricingSummary['voucher_code'] ?? $voucherCode;
 
         // Persist latest context for subsequent requests
         $_SESSION[self::CHECKOUT_SESSION_KEY] = [
@@ -179,7 +298,18 @@ class CartController extends Controller
         ];
 
         $shippingOptions = $this->shippingOptions;
-        $this->render('shop/checkout', compact('items', 'user', 'savedAddresses', 'pricingSummary', 'shippingOptions', 'shippingMethod', 'voucherCode', 'userVouchers', 'orderCount'));
+        $this->render('shop/checkout', compact(
+            'items',
+            'user',
+            'savedAddresses',
+            'pricingSummary',
+            'shippingOptions',
+            'shippingMethod',
+            'voucherCode',
+            'userVouchers',
+            'orderCount',
+            'outstandingPayLater'
+        ));
     }
 
     public function prepare_checkout(): void
@@ -199,7 +329,7 @@ class CartController extends Controller
         redirect('?module=cart&action=checkout');
     }
 
-    private function calculatePricingSummary(array $items, ?array $user, bool $usePoints, string $shippingMethod, string $voucherCode): array
+    private function calculatePricingSummary(array $items, ?array $user, bool $usePoints, string $shippingMethod, ?array $voucher, int $orderCount): array
     {
         $subtotal = array_reduce($items, fn ($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
         $availablePoints = (int) floor((float) ($user['reward_points'] ?? 0));
@@ -213,30 +343,55 @@ class CartController extends Controller
         }
         $shippingFee = (float) $this->shippingOptions[$shippingMethod]['fee'];
 
-        // Simple voucher implementation (flat amount or percentage)
-        $voucherCode = strtoupper(trim($voucherCode));
-        $voucherDiscount = 0.0;
+        // Voucher from database / claimed list
+        $voucherDiscountMerch = 0.0;
+        $shippingDiscount = 0.0;
         $appliedVoucher = '';
-        if ($voucherCode !== '') {
-            $vouchers = [
-                // code => [type, value, min_subtotal]
-                'SAVE10' => ['type' => 'amount', 'value' => 10.0, 'min' => 100.0],
-                'SAVE50' => ['type' => 'amount', 'value' => 50.0, 'min' => 500.0],
-                'OFF5'   => ['type' => 'percent', 'value' => 5.0, 'min' => 0.0],
-            ];
-            if (isset($vouchers[$voucherCode]) && $subtotal >= $vouchers[$voucherCode]['min']) {
-                $config = $vouchers[$voucherCode];
-                if ($config['type'] === 'amount') {
-                    $voucherDiscount = min($config['value'], $subtotal);
-                } else {
-                    $voucherDiscount = round($subtotal * ($config['value'] / 100), 2);
+
+        if ($voucher && !empty($voucher['code'])) {
+            $code = strtoupper($voucher['code']);
+            $type = $voucher['type'];
+            $value = (float) $voucher['value'];
+            $minSubtotal = (float) ($voucher['min_subtotal'] ?? 0);
+            $maxDiscount = $voucher['max_discount'] !== null ? (float) $voucher['max_discount'] : null;
+            $isShippingOnly = !empty($voucher['is_shipping_only']);
+            $isFirstOrderOnly = !empty($voucher['is_first_order_only']);
+
+            $eligible = true;
+            if ($minSubtotal > 0 && $subtotal < $minSubtotal) {
+                $eligible = false;
+            }
+            if ($isFirstOrderOnly && $orderCount > 0) {
+                $eligible = false;
+            }
+
+            if ($eligible) {
+                if ($type === 'amount') {
+                    $voucherDiscountMerch = min($value, $subtotal);
+                } elseif ($type === 'percent') {
+                    $voucherDiscountMerch = round($subtotal * ($value / 100), 2);
+                } elseif ($type === 'shipping_amount') {
+                    $shippingDiscount = min($value, $shippingFee);
+                } elseif ($type === 'free_shipping') {
+                    $shippingDiscount = $shippingFee;
                 }
-                $appliedVoucher = $voucherCode;
+
+                if ($maxDiscount !== null) {
+                    if ($isShippingOnly) {
+                        $shippingDiscount = min($shippingDiscount, $maxDiscount);
+                    } else {
+                        $voucherDiscountMerch = min($voucherDiscountMerch, $maxDiscount);
+                    }
+                }
+
+                $appliedVoucher = $code;
             }
         }
 
-        $baseTotal = max(0.0, $subtotal - $pointsDiscount - $voucherDiscount);
-        $payable = $baseTotal + $shippingFee;
+        $baseTotal = max(0.0, $subtotal - $pointsDiscount - $voucherDiscountMerch);
+        $effectiveShippingFee = max(0.0, $shippingFee - $shippingDiscount);
+        $payable = $baseTotal + $effectiveShippingFee;
+        $totalVoucherDiscount = $voucherDiscountMerch + $shippingDiscount;
 
         return [
             'subtotal' => $subtotal,
@@ -245,9 +400,9 @@ class CartController extends Controller
             'points_redeemed' => $pointsRedeemed,
             'points_discount' => $pointsDiscount,
             'voucher_code' => $appliedVoucher,
-            'voucher_discount' => $voucherDiscount,
+            'voucher_discount' => $totalVoucherDiscount,
             'shipping_method' => $shippingMethod,
-            'shipping_fee' => $shippingFee,
+            'shipping_fee' => $effectiveShippingFee,
             'payable_total' => $payable,
             'use_points' => $usePoints,
         ];

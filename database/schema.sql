@@ -109,10 +109,14 @@ CREATE TABLE payments (
     order_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     amount DECIMAL(10,2) NOT NULL,
+    principal_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
     status VARCHAR(50) DEFAULT 'pending',
     transaction_ref VARCHAR(100),
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    billing_due_date DATE NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    tenure_months INT NULL,
+    interest_rate DECIMAL(5,2) NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
 

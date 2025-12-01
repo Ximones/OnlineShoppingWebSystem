@@ -239,6 +239,176 @@ a {
     justify-content: flex-end;
 }
 
+.checkout-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin: 0.75rem 0 1rem;
+}
+
+.checkout-card-group {
+    border: 1px solid #e0e7f1;
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem 0.9rem;
+    background: #f9fbff;
+}
+
+.checkout-card-header {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.shipping-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.shipping-card {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d6dde8;
+    background: #fff;
+    cursor: pointer;
+    min-width: 180px;
+    font-size: 0.9rem;
+}
+
+.shipping-card input[type="radio"] {
+    display: none;
+}
+
+.shipping-card.is-selected {
+    border-color: #0066cc;
+    background: #eef5ff;
+}
+
+.shipping-name {
+    font-weight: 600;
+}
+
+.shipping-fee {
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.voucher-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.voucher-chip {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid #d6dde8;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.voucher-chip input[type="radio"] {
+    display: none;
+}
+
+.voucher-chip small {
+    font-size: 0.75rem;
+    color: #555;
+}
+
+.voucher-chip.is-selected {
+    border-color: #0066cc;
+    background: #eef5ff;
+}
+
+.voucher-chip.is-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.payment-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.payment-card {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d6dde8;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.payment-card input[type="radio"] {
+    display: none;
+}
+
+.payment-card.is-selected {
+    border-color: #0066cc;
+    background: #eef5ff;
+}
+
+.payment-name {
+    font-weight: 600;
+}
+
+.payment-note {
+    font-size: 0.8rem;
+    color: #555;
+}
+
+.tenure-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.tenure-chip {
+    display: inline-flex;
+    flex-direction: column;
+    padding: 0.35rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d6dde8;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.tenure-chip input[type="radio"] {
+    display: none;
+}
+
+.tenure-chip.is-selected {
+    border-color: #0066cc;
+    background: #eef5ff;
+}
+
+.tenure-main {
+    font-weight: 600;
+}
+
+.tenure-sub {
+    font-size: 0.78rem;
+    color: #555;
+}
+
+.tenure-remaining {
+    font-size: 0.78rem;
+    color: #c0392b;
+}
+
 .auth-card {
     max-width: 420px;
     margin: 2rem auto;
@@ -301,6 +471,38 @@ form textarea[readonly] {
 .summary li {
     padding: 0.3rem 0;
     border-bottom: 1px dashed #eee;
+}
+
+.order-summary-list .order-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.order-summary-thumb img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #eee;
+}
+
+.order-summary-info {
+    flex: 1;
+}
+
+.order-summary-name {
+    font-weight: 600;
+}
+
+.order-summary-meta {
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.order-summary-total {
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .grand {

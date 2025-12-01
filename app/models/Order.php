@@ -48,11 +48,14 @@ class Order
             $baseTotal = max(0, $total - $discount - $voucherDiscount);
             $payableTotal = $baseTotal + $shippingFee;
 
-            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address) VALUES (?, ?, ?, "pending", ?, ?, ?)');
+            $orderStatus = $options['order_status'] ?? 'pending';
+
+            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)');
             $stm->execute([
                 $userId,
                 $cartId,
                 $payableTotal,
+                $orderStatus,
                 $shipping['name'],
                 $shipping['phone'],
                 $shipping['address'],

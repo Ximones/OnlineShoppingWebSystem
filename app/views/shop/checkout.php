@@ -15,6 +15,7 @@ $pricingSummary = $pricingSummary ?? [
 ];
 $userVouchers = $userVouchers ?? [];
 $orderCount = $orderCount ?? 0;
+$outstandingPayLater = $outstandingPayLater ?? 0.0;
 ?>
 <section class="panel">
     <h2>Delivery Details</h2>
@@ -83,14 +84,195 @@ $orderCount = $orderCount ?? 0;
 
 <section class="panel">
     <h2>Order Summary</h2>
-    <ul class="summary">
+    <ul class="summary order-summary-list">
         <?php $grand = 0; ?>
         <?php foreach ($items as $item): ?>
             <?php $total = $item['price'] * $item['quantity']; $grand += $total; ?>
-            <li><?= encode($item['name']); ?> x <?= $item['quantity']; ?> — RM <?= number_format($total, 2); ?></li>
+            <li class="order-summary-item">
+                <div class="order-summary-thumb">
+                    <img src="<?= encode($item['photo'] ?? 'https://placehold.co/80x80'); ?>" alt="<?= encode($item['name']); ?>">
+                </div>
+                <div class="order-summary-info">
+                    <div class="order-summary-name"><?= encode($item['name']); ?></div>
+                    <div class="order-summary-meta">
+                        Qty <?= (int) $item['quantity']; ?> • RM <?= number_format($item['price'], 2); ?> each
+                    </div>
+                </div>
+                <div class="order-summary-total">RM <?= number_format($total, 2); ?></div>
+            </li>
         <?php endforeach; ?>
     </ul>
-    <p class="grand">Subtotal: RM <?= number_format($pricingSummary['subtotal'], 2); ?></p>
+    <?php $currentMethod = $shippingMethod ?? ($pricingSummary['shipping_method'] ?? 'standard'); ?>
+    <div class="checkout-cards">
+        <div class="checkout-card-group">
+            <div class="checkout-card-header">Shipping method</div>
+            <div class="shipping-options">
+                <?php foreach ($shippingOptions as $code => $opt): ?>
+                    <?php $checked = $code === $currentMethod; ?>
+                    <label class="shipping-card <?= $checked ? 'is-selected' : ''; ?>">
+                        <input type="radio"
+                               name="shipping_method"
+                               value="<?= $code; ?>"
+                               form="checkout-form"
+                               <?= $checked ? 'checked' : ''; ?>>
+                        <span class="shipping-name"><?= encode($opt['label']); ?></span>
+                        <span class="shipping-fee">RM <?= number_format($opt['fee'], 2); ?></span>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="checkout-card-group">
+            <div class="checkout-card-header">Vouchers</div>
+            <?php $currentVoucher = $voucherCode ?? $pricingSummary['voucher_code'] ?? ''; ?>
+            <div class="voucher-chips">
+                <label class="voucher-chip <?= $currentVoucher === '' ? 'is-selected' : ''; ?>">
+                    <input type="radio"
+                           name="voucher_code"
+                           value=""
+                           form="checkout-form"
+                           <?= $currentVoucher === '' ? 'checked' : ''; ?>>
+                    <span>No voucher</span>
+                </label>
+
+                <?php foreach ($userVouchers as $uv): ?>
+                    <?php
+                    $eligible = true;
+                    if (!empty($uv['min_subtotal']) && $pricingSummary['subtotal'] < (float) $uv['min_subtotal']) {
+                        $eligible = false;
+                    }
+                    if (!empty($uv['is_first_order_only']) && $orderCount > 0) {
+                        $eligible = false;
+                    }
+                    $selected = $uv['code'] === $currentVoucher && $eligible;
+                    ?>
+                    <label class="voucher-chip <?= $selected ? 'is-selected' : ''; ?> <?= !$eligible ? 'is-disabled' : ''; ?>">
+                        <input type="radio"
+                               name="voucher_code"
+                               value="<?= encode($uv['code']); ?>"
+                               form="checkout-form"
+                               <?= $selected ? 'checked' : ''; ?>
+                               <?= !$eligible ? 'disabled' : ''; ?>>
+                        <span><?= encode($uv['code']); ?></span>
+                        <small><?= encode($uv['name']); ?><?= !$eligible ? ' (Not applicable)' : ''; ?></small>
+                    </label>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <?php
+    $availablePoints = (int) ($pricingSummary['available_points'] ?? 0);
+    $maxRedeemableRm = (int) ($pricingSummary['max_redeemable_rm'] ?? 0);
+    ?>
+    <div class="checkout-card-group">
+        <div class="checkout-card-header">Reward points</div>
+        <p class="grand" style="margin-bottom: 0;">
+            <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox"
+                       name="use_points"
+                       form="checkout-form"
+                       value="1"
+                       <?= !empty($pricingSummary['use_points']) ? 'checked' : ''; ?>
+                       <?= $maxRedeemableRm <= 0 ? 'disabled' : ''; ?>>
+                <span>
+                    <strong>Use reward points</strong>
+                    <span style="font-size: 0.85rem; color: #555;">
+                        You have <?= number_format($availablePoints, 0); ?> pts (up to RM <?= number_format($maxRedeemableRm, 2); ?> off)
+                    </span>
+                </span>
+            </label>
+        </p>
+    </div>
+
+    <div class="checkout-card-group">
+        <div class="checkout-card-header">Payment method</div>
+        <?php $currentPayment = post('payment_method', 'Online Banking'); ?>
+        <div class="payment-options">
+            <?php
+            $methods = [
+                'Online Banking' => 'Online Banking',
+                'Credit Card' => 'Credit Card',
+                'PayLater' => 'Pay Later',
+            ];
+            foreach ($methods as $value => $label):
+                $checked = $currentPayment === $value;
+            ?>
+                <label class="payment-card <?= $checked ? 'is-selected' : ''; ?>">
+                    <input type="radio"
+                           name="payment_method"
+                           value="<?= encode($value); ?>"
+                           form="checkout-form"
+                           <?= $checked ? 'checked' : ''; ?>>
+                    <span class="payment-name"><?= encode($label); ?></span>
+                    <?php if ($value === 'PayLater'): ?>
+                        <?php
+                        $principal = (float) ($pricingSummary['payable_total'] ?? 0);
+                        $limit = 10000.0;
+                        $availableLimit = max(0.0, $limit - (float) $outstandingPayLater);
+                        ?>
+                        <span class="payment-note">
+                            Pay later via Bills • Available limit RM <?= number_format($availableLimit, 2); ?>
+                        </span>
+                    <?php endif; ?>
+                </label>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if ($currentPayment === 'PayLater'): ?>
+            <?php
+            $principal = (float) ($pricingSummary['payable_total'] ?? 0);
+            $tenureOptions = [
+                3 => 0.0,
+                6 => 0.015,
+                12 => 0.025,
+            ];
+            $currentTenure = (int) post('paylater_tenure', 3);
+            if (!isset($tenureOptions[$currentTenure])) {
+                $currentTenure = 3;
+            }
+            $limit = 10000.0;
+            $availableLimit = max(0.0, $limit - (float) $outstandingPayLater);
+            ?>
+            <div style="margin-top: 0.75rem;">
+                <div style="font-size: 0.9rem; margin-bottom: 0.25rem;">Choose tenure</div>
+                <div class="tenure-options">
+                    <?php foreach ($tenureOptions as $months => $rate): ?>
+                        <?php
+                        $totalWithInterest = $principal * (1 + $rate);
+                        $monthly = $months > 0 ? $totalWithInterest / $months : 0;
+                        $selected = $currentTenure === $months;
+                        $financedPrincipal = min($principal, $availableLimit);
+                        $interestTotal = $financedPrincipal * $rate;
+                        $financedTotal = $financedPrincipal + $interestTotal;
+                        $monthly = $months > 0 ? $financedTotal / $months : 0;
+                        $selected = $currentTenure === $months;
+                        $remainingNow = max(0.0, $principal - $financedPrincipal);
+                        ?>
+                        <label class="tenure-chip <?= $selected ? 'is-selected' : ''; ?>">
+                            <input type="radio"
+                                   name="paylater_tenure"
+                                   value="<?= $months; ?>"
+                                   form="checkout-form"
+                                   <?= $selected ? 'checked' : ''; ?>>
+                            <span class="tenure-main"><?= $months; ?> months</span>
+                            <span class="tenure-sub">
+                                RM <?= number_format($monthly, 2); ?> / month
+                                (<?= $rate > 0 ? ($rate * 100) . '% interest' : '0% interest'; ?>)
+                            </span>
+                            <?php if ($remainingNow > 0): ?>
+                                <span class="tenure-remaining">
+                                    RM <?= number_format($remainingNow, 2); ?> to pay now with other method
+                                </span>
+                            <?php endif; ?>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Moved summary breakdown just above total -->
+    <p class="grand" style="margin-top: 1rem;">Subtotal: RM <?= number_format($pricingSummary['subtotal'], 2); ?></p>
     <?php if (!empty($pricingSummary['points_redeemed'])): ?>
         <p class="grand" style="color: #0e3d73;">
             Points Applied (<?= number_format($pricingSummary['points_redeemed'], 0); ?> pts): -RM <?= number_format($pricingSummary['points_discount'], 2); ?>
@@ -101,65 +283,7 @@ $orderCount = $orderCount ?? 0;
             Voucher "<?= encode($pricingSummary['voucher_code']); ?>" applied: -RM <?= number_format($pricingSummary['voucher_discount'], 2); ?>
         </p>
     <?php endif; ?>
-    <p class="grand">
-        Shipping:
-        <?php
-        $currentMethod = $shippingMethod ?? ($pricingSummary['shipping_method'] ?? 'standard');
-        ?>
-        <select id="shipping-method-select" name="shipping_method" form="checkout-form" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-left: 0.25rem;">
-            <?php foreach ($shippingOptions as $code => $opt): ?>
-                <option value="<?= $code; ?>" <?= $code === $currentMethod ? 'selected' : ''; ?>>
-                    <?= encode($opt['label']); ?> — RM <?= number_format($opt['fee'], 2); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </p>
-    <p class="grand">
-        Voucher:
-        <?php $currentVoucher = $voucherCode ?? $pricingSummary['voucher_code'] ?? ''; ?>
-        <select name="voucher_code"
-                form="checkout-form"
-                style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-left: 0.25rem; max-width: 260px;">
-            <option value="">No voucher</option>
-            <?php foreach ($userVouchers as $uv): ?>
-                <?php
-                $eligible = true;
-                if (!empty($uv['min_subtotal']) && $pricingSummary['subtotal'] < (float) $uv['min_subtotal']) {
-                    $eligible = false;
-                }
-                if (!empty($uv['is_first_order_only']) && $orderCount > 0) {
-                    $eligible = false;
-                }
-                $selected = $uv['code'] === $currentVoucher && $eligible;
-                ?>
-                <option value="<?= encode($uv['code']); ?>"
-                        <?= $selected ? 'selected' : ''; ?>
-                        <?= !$eligible ? 'disabled' : ''; ?>>
-                    <?= encode($uv['code'] . ' - ' . $uv['name'] . (!$eligible ? ' (Not applicable)' : '')); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </p>
-    <?php
-    $availablePoints = (int) ($pricingSummary['available_points'] ?? 0);
-    $maxRedeemableRm = (int) ($pricingSummary['max_redeemable_rm'] ?? 0);
-    ?>
-    <p class="grand">
-        <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
-            <input type="checkbox"
-                   name="use_points"
-                   form="checkout-form"
-                   value="1"
-                   <?= !empty($pricingSummary['use_points']) ? 'checked' : ''; ?>
-                   <?= $maxRedeemableRm <= 0 ? 'disabled' : ''; ?>>
-            <span>
-                <strong>Use reward points</strong>
-                <span style="font-size: 0.85rem; color: #555;">
-                    You have <?= number_format($availablePoints, 0); ?> pts (up to RM <?= number_format($maxRedeemableRm, 2); ?> off)
-                </span>
-            </span>
-        </label>
-    </p>
+
     <p class="grand"><strong>Total Payable: RM <?= number_format($pricingSummary['payable_total'], 2); ?></strong></p>
 </section>
 
@@ -169,7 +293,7 @@ $orderCount = $orderCount ?? 0;
     <?php else: ?>
         <button type="submit" form="checkout-form" class="btn primary">Place Order</button>
     <?php endif; ?>
- </section>
+</section>
 
 <!-- Modal for different address -->
 <div class="modal-overlay" id="different-address-modal">
@@ -359,12 +483,35 @@ $orderCount = $orderCount ?? 0;
                     $form.submit();
                 }
 
-                $('#shipping-method-select').on('change', submitUpdate);
-                $('select[name="voucher_code"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="shipping_method"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="voucher_code"][form="checkout-form"]').on('change', submitUpdate);
                 $('input[name="use_points"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="payment_method"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="paylater_tenure"][form="checkout-form"]').on('change', submitUpdate);
             }
 
             attachPricingAutoUpdate();
+
+            // Update card selection styles on change
+            $(document).on('change', 'input[name="shipping_method"][form="checkout-form"]', function() {
+                $('.shipping-card').removeClass('is-selected');
+                $(this).closest('.shipping-card').addClass('is-selected');
+            });
+
+            $(document).on('change', 'input[name="voucher_code"][form="checkout-form"]', function() {
+                $('.voucher-chip').removeClass('is-selected');
+                $(this).closest('.voucher-chip').addClass('is-selected');
+            });
+
+            $(document).on('change', 'input[name="payment_method"][form="checkout-form"]', function() {
+                $('.payment-card').removeClass('is-selected');
+                $(this).closest('.payment-card').addClass('is-selected');
+            });
+
+            $(document).on('change', 'input[name="paylater_tenure"][form="checkout-form"]', function() {
+                $('.tenure-chip').removeClass('is-selected');
+                $(this).closest('.tenure-chip').addClass('is-selected');
+            });
 
             // Restore scroll position if saved
             try {

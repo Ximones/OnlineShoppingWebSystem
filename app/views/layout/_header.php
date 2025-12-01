@@ -6,6 +6,7 @@
             <?php if (auth_user()): ?>
                 <a href="?module=cart&action=index">Cart</a>
                 <a href="?module=orders&action=history">Orders</a>
+                <a href="?module=bills&action=index">Bills</a>
                 <a href="?module=vouchers&action=index">Vouchers</a>
                 <a href="?module=profile&action=index">Profile</a>
                 <?php if (is_admin()): ?>
