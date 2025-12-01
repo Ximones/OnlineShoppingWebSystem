@@ -1,14 +1,20 @@
 <?php
 $title = 'Checkout';
-$pointsSummary = $pointsSummary ?? [
+$pricingSummary = $pricingSummary ?? [
     'subtotal' => 0,
     'available_points' => 0,
     'max_redeemable_rm' => 0,
     'points_redeemed' => 0,
-    'discount' => 0,
+    'points_discount' => 0,
+    'voucher_code' => '',
+    'voucher_discount' => 0,
+    'shipping_method' => 'standard',
+    'shipping_fee' => 0,
     'payable_total' => 0,
     'use_points' => false,
 ];
+$userVouchers = $userVouchers ?? [];
+$orderCount = $orderCount ?? 0;
 ?>
 <section class="panel">
     <h2>Delivery Details</h2>
@@ -52,15 +58,14 @@ $pointsSummary = $pointsSummary ?? [
             <button type="button" id="use-different-address" class="btn secondary">Use Different Address</button>
         </div>
         <form method="post" id="checkout-form" style="display: none;">
+            <input type="hidden" name="checkout_step" id="checkout-step" value="">
             <input type="text" id="shipping_name" name="shipping_name" value="<?= encode($displayAddress['name'] ?? ''); ?>" required>
             <input type="text" id="shipping_phone" name="shipping_phone" value="<?= encode($displayAddress['phone'] ?? ''); ?>" required>
             <textarea id="shipping_address" name="shipping_address" required><?= encode($displayAddress['address'] ?? ''); ?></textarea>
         </form>
-        <div style="margin-top: 15px;">
-            <button type="button" id="place-order-btn" class="btn primary">Place Order</button>
-        </div>
     <?php else: ?>
         <form method="post" id="checkout-form">
+            <input type="hidden" name="checkout_step" id="checkout-step" value="">
             <label for="shipping_name">Recipient Name</label>
             <input type="text" id="shipping_name" name="shipping_name" value="<?= encode(post('shipping_name', $user['name'] ?? '')); ?>" required>
             <?php err('shipping_name'); ?>
@@ -72,8 +77,6 @@ $pointsSummary = $pointsSummary ?? [
             <label for="shipping_address">Address</label>
             <textarea id="shipping_address" name="shipping_address" required><?= encode(post('shipping_address', $user['address'] ?? '')); ?></textarea>
             <?php err('shipping_address'); ?>
-
-            <button type="submit" class="btn primary">Place Order</button>
         </form>
     <?php endif; ?>
 </section>
@@ -87,14 +90,86 @@ $pointsSummary = $pointsSummary ?? [
             <li><?= encode($item['name']); ?> x <?= $item['quantity']; ?> — RM <?= number_format($total, 2); ?></li>
         <?php endforeach; ?>
     </ul>
-    <p class="grand">Subtotal: RM <?= number_format($pointsSummary['subtotal'], 2); ?></p>
-    <?php if (!empty($pointsSummary['points_redeemed'])): ?>
+    <p class="grand">Subtotal: RM <?= number_format($pricingSummary['subtotal'], 2); ?></p>
+    <?php if (!empty($pricingSummary['points_redeemed'])): ?>
         <p class="grand" style="color: #0e3d73;">
-            Points Applied (<?= number_format($pointsSummary['points_redeemed'], 0); ?> pts): -RM <?= number_format($pointsSummary['discount'], 2); ?>
+            Points Applied (<?= number_format($pricingSummary['points_redeemed'], 0); ?> pts): -RM <?= number_format($pricingSummary['points_discount'], 2); ?>
         </p>
     <?php endif; ?>
-    <p class="grand"><strong>Total Payable: RM <?= number_format($pointsSummary['payable_total'], 2); ?></strong></p>
+    <?php if (!empty($pricingSummary['voucher_code'])): ?>
+        <p class="grand" style="color: #0e3d73;">
+            Voucher "<?= encode($pricingSummary['voucher_code']); ?>" applied: -RM <?= number_format($pricingSummary['voucher_discount'], 2); ?>
+        </p>
+    <?php endif; ?>
+    <p class="grand">
+        Shipping:
+        <?php
+        $currentMethod = $shippingMethod ?? ($pricingSummary['shipping_method'] ?? 'standard');
+        ?>
+        <select id="shipping-method-select" name="shipping_method" form="checkout-form" style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-left: 0.25rem;">
+            <?php foreach ($shippingOptions as $code => $opt): ?>
+                <option value="<?= $code; ?>" <?= $code === $currentMethod ? 'selected' : ''; ?>>
+                    <?= encode($opt['label']); ?> — RM <?= number_format($opt['fee'], 2); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </p>
+    <p class="grand">
+        Voucher:
+        <?php $currentVoucher = $voucherCode ?? $pricingSummary['voucher_code'] ?? ''; ?>
+        <select name="voucher_code"
+                form="checkout-form"
+                style="padding: 0.25rem 0.5rem; border-radius: 6px; border: 1px solid #ccc; margin-left: 0.25rem; max-width: 260px;">
+            <option value="">No voucher</option>
+            <?php foreach ($userVouchers as $uv): ?>
+                <?php
+                $eligible = true;
+                if (!empty($uv['min_subtotal']) && $pricingSummary['subtotal'] < (float) $uv['min_subtotal']) {
+                    $eligible = false;
+                }
+                if (!empty($uv['is_first_order_only']) && $orderCount > 0) {
+                    $eligible = false;
+                }
+                $selected = $uv['code'] === $currentVoucher && $eligible;
+                ?>
+                <option value="<?= encode($uv['code']); ?>"
+                        <?= $selected ? 'selected' : ''; ?>
+                        <?= !$eligible ? 'disabled' : ''; ?>>
+                    <?= encode($uv['code'] . ' - ' . $uv['name'] . (!$eligible ? ' (Not applicable)' : '')); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </p>
+    <?php
+    $availablePoints = (int) ($pricingSummary['available_points'] ?? 0);
+    $maxRedeemableRm = (int) ($pricingSummary['max_redeemable_rm'] ?? 0);
+    ?>
+    <p class="grand">
+        <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox"
+                   name="use_points"
+                   form="checkout-form"
+                   value="1"
+                   <?= !empty($pricingSummary['use_points']) ? 'checked' : ''; ?>
+                   <?= $maxRedeemableRm <= 0 ? 'disabled' : ''; ?>>
+            <span>
+                <strong>Use reward points</strong>
+                <span style="font-size: 0.85rem; color: #555;">
+                    You have <?= number_format($availablePoints, 0); ?> pts (up to RM <?= number_format($maxRedeemableRm, 2); ?> off)
+                </span>
+            </span>
+        </label>
+    </p>
+    <p class="grand"><strong>Total Payable: RM <?= number_format($pricingSummary['payable_total'], 2); ?></strong></p>
 </section>
+
+<section class="panel" style="text-align: right;">
+    <?php if ($displayAddress && !$hasErrors): ?>
+        <button type="button" id="place-order-btn" class="btn primary">Place Order</button>
+    <?php else: ?>
+        <button type="submit" form="checkout-form" class="btn primary">Place Order</button>
+    <?php endif; ?>
+ </section>
 
 <!-- Modal for different address -->
 <div class="modal-overlay" id="different-address-modal">
@@ -143,6 +218,13 @@ $pointsSummary = $pointsSummary ?? [
         }
 
         jQuery(function($) {
+            function rememberScroll() {
+                try {
+                    var y = window.scrollY || window.pageYOffset || 0;
+                    localStorage.setItem('checkoutScroll', String(y));
+                } catch (e) {}
+            }
+
             // Handle saved address selection
             $('#saved-address-select').on('change', function() {
                 var $option = $(this).find('option:selected');
@@ -254,10 +336,44 @@ $pointsSummary = $pointsSummary ?? [
                 form.submit();
             });
 
-            // Handle Place Order button click
+            // Handle Place Order button click (auto-filled address mode)
             $('#place-order-btn').on('click', function() {
+                rememberScroll();
+                $('#checkout-step').val('');
                 $('#checkout-form').submit();
             });
+
+            // Also remember scroll when the form is submitted directly
+            $(document).on('submit', '#checkout-form', function() {
+                rememberScroll();
+            });
+
+            // Auto-update pricing when shipping, voucher, or points change
+            function attachPricingAutoUpdate() {
+                var $form = $('#checkout-form');
+                if (!$form.length) return;
+
+                function submitUpdate() {
+                    rememberScroll();
+                    $('#checkout-step').val('update_pricing');
+                    $form.submit();
+                }
+
+                $('#shipping-method-select').on('change', submitUpdate);
+                $('select[name="voucher_code"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="use_points"][form="checkout-form"]').on('change', submitUpdate);
+            }
+
+            attachPricingAutoUpdate();
+
+            // Restore scroll position if saved
+            try {
+                var savedY = localStorage.getItem('checkoutScroll');
+                if (savedY !== null) {
+                    window.scrollTo(0, parseInt(savedY, 10) || 0);
+                    localStorage.removeItem('checkoutScroll');
+                }
+            } catch (e) {}
         });
     }
 

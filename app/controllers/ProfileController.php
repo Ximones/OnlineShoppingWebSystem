@@ -5,21 +5,11 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\SavedAddress;
 use App\Models\User;
-use RuntimeException;
 
 class ProfileController extends Controller
 {
     private User $users;
     private SavedAddress $savedAddresses;
-    private array $checkInPoints = [
-        1 => 1,
-        2 => 5,
-        3 => 10,
-        4 => 15,
-        5 => 20,
-        6 => 25,
-        7 => 100,
-    ];
 
     public function __construct()
     {
@@ -33,7 +23,7 @@ class ProfileController extends Controller
         $userId = auth_id();
         $user = $this->users->find($userId);
         $savedAddresses = $this->savedAddresses->findByUser($userId);
-        $this->renderProfilePage($user, $savedAddresses);
+        $this->render('profile/index', compact('user', 'savedAddresses'));
     }
 
     public function update(): void
@@ -54,7 +44,7 @@ class ProfileController extends Controller
         }
 
         $user = $this->users->find(auth_id());
-        $this->renderProfilePage($user);
+        $this->render('profile/index', compact('user'));
     }
 
     public function password(): void
@@ -75,7 +65,7 @@ class ProfileController extends Controller
             }
         }
         $user = $this->users->find(auth_id());
-        $this->renderProfilePage($user);
+        $this->render('profile/index', compact('user'));
     }
 
     public function photo(): void
@@ -113,32 +103,6 @@ class ProfileController extends Controller
             flash('success', 'Address saved.');
         }
         redirect('?module=profile&action=index');
-    }
-
-    public function check_in(): void
-    {
-        $this->requireAuth();
-        if (!is_post()) {
-            redirect('?module=profile&action=index');
-        }
-
-        $result = $this->users->recordDailyCheckIn(auth_id());
-        if ($result['status'] === 'checked_in') {
-            flash('success', sprintf('Checked in! You earned %d reward points.', $result['points']));
-        } elseif ($result['status'] === 'already_checked_in') {
-            flash('info', 'You already checked in today. Come back tomorrow for more points.');
-        } else {
-            flash('danger', 'Unable to process your check-in. Please try again.');
-        }
-
-        redirect('?module=profile&action=index');
-    }
-
-    private function renderProfilePage(?array $user, ?array $savedAddresses = null): void
-    {
-        $savedAddresses ??= $this->savedAddresses->findByUser(auth_id());
-        $checkInPoints = $this->checkInPoints;
-        $this->render('profile/index', compact('user', 'savedAddresses', 'checkInPoints'));
     }
 }
 

@@ -7,8 +7,10 @@ class Router {
         'profile' => 'ProfileController',
         'admin.members' => 'AdminMemberController',
         'admin.products' => 'AdminProductController',
+        'admin.vouchers' => 'AdminVoucherController',
         'cart' => 'CartController',
         'orders' => 'OrderController',
+        'vouchers' => 'VoucherController',
     ];
 
     public function dispatch(): void {

@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\SavedAddress;
 use App\Models\User;
+use App\Models\UserVoucher;
 
 class CartController extends Controller
 {
@@ -18,6 +19,16 @@ class CartController extends Controller
     private Order $orders;
     private User $users;
     private SavedAddress $savedAddresses;
+    private UserVoucher $userVouchers;
+    /**
+     * Simple shipping options: code => [label, fee]
+     * Fee is in RM.
+     */
+    private array $shippingOptions = [
+        'standard' => ['label' => 'Standard Shipping (3-5 days)', 'fee' => 10.0],
+        'express'  => ['label' => 'Express Shipping (1-2 days)', 'fee' => 25.0],
+        'pickup'   => ['label' => 'Self Pickup (Free)', 'fee' => 0.0],
+    ];
 
     public function __construct()
     {
@@ -26,6 +37,7 @@ class CartController extends Controller
         $this->orders = new Order();
         $this->users = new User();
         $this->savedAddresses = new SavedAddress();
+        $this->userVouchers = new UserVoucher();
     }
 
     public function index(): void
@@ -95,7 +107,16 @@ class CartController extends Controller
             flash('danger', 'Please select at least one item to checkout.');
             redirect('?module=cart&action=index');
         }
+
+        // Determine use of reward points (allow toggle on checkout page)
         $usePoints = !empty($context['use_points']);
+        if (is_post() && post('action') !== 'save_address') {
+            $usePoints = post('use_points') === '1';
+        }
+
+        // Determine shipping & voucher from current request or stored context
+        $shippingMethod = post('shipping_method', $context['shipping_method'] ?? 'standard');
+        $voucherCode = trim((string) post('voucher_code', $context['voucher_code'] ?? ''));
 
         // Handle saving address from modal
         if (is_post() && post('action') === 'save_address') {
@@ -119,19 +140,24 @@ class CartController extends Controller
         }
 
         // Handle order creation
-        if (is_post() && post('action') !== 'save_address' && validate([
+        $checkoutStep = post('checkout_step', '');
+
+        if (is_post() && post('action') !== 'save_address' && $checkoutStep !== 'update_pricing' && validate([
             'shipping_name' => ['required' => 'Shipping name is required.'],
             'shipping_phone' => ['required' => 'Phone is required.'],
             'shipping_address' => ['required' => 'Address is required.'],
         ])) {
-            $pointsSummary = $this->calculatePointsSummary($items, $this->users->find($userId), $usePoints);
+            $pricingSummary = $this->calculatePricingSummary($items, $this->users->find($userId), $usePoints, $shippingMethod, $voucherCode);
             $orderId = $this->orders->createFromCart($userId, $cartId, [
                 'name' => post('shipping_name'),
                 'phone' => post('shipping_phone'),
                 'address' => post('shipping_address'),
             ], [
                 'item_ids' => array_column($items, 'id'),
-                'points_redeemed' => $pointsSummary['points_redeemed'],
+                'points_redeemed' => $pricingSummary['points_redeemed'],
+                'shipping_fee' => $pricingSummary['shipping_fee'],
+                'voucher_discount' => $pricingSummary['voucher_discount'],
+                'voucher_code' => $pricingSummary['voucher_code'],
             ]);
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
             flash('success', 'Order created.');
@@ -140,8 +166,20 @@ class CartController extends Controller
 
         $user = $this->users->find($userId);
         $savedAddresses = $this->savedAddresses->findByUser($userId);
-        $pointsSummary = $this->calculatePointsSummary($items, $user, $usePoints);
-        $this->render('shop/checkout', compact('items', 'user', 'savedAddresses', 'pointsSummary'));
+        $userVouchers = $this->userVouchers->activeForUser($userId);
+        $orderCount = $this->orders->countByUser($userId);
+        $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $voucherCode);
+
+        // Persist latest context for subsequent requests
+        $_SESSION[self::CHECKOUT_SESSION_KEY] = [
+            'selected_item_ids' => $selectedIds,
+            'use_points' => $usePoints,
+            'shipping_method' => $shippingMethod,
+            'voucher_code' => $voucherCode,
+        ];
+
+        $shippingOptions = $this->shippingOptions;
+        $this->render('shop/checkout', compact('items', 'user', 'savedAddresses', 'pricingSummary', 'shippingOptions', 'shippingMethod', 'voucherCode', 'userVouchers', 'orderCount'));
     }
 
     public function prepare_checkout(): void
@@ -155,25 +193,61 @@ class CartController extends Controller
         $_SESSION[self::CHECKOUT_SESSION_KEY] = [
             'selected_item_ids' => $selected,
             'use_points' => post('use_points') === '1',
+            'shipping_method' => 'standard',
+            'voucher_code' => '',
         ];
         redirect('?module=cart&action=checkout');
     }
 
-    private function calculatePointsSummary(array $items, ?array $user, bool $usePoints): array
+    private function calculatePricingSummary(array $items, ?array $user, bool $usePoints, string $shippingMethod, string $voucherCode): array
     {
         $subtotal = array_reduce($items, fn ($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
         $availablePoints = (int) floor((float) ($user['reward_points'] ?? 0));
         $maxRedeemableRm = min($subtotal, (int) floor($availablePoints / 100));
         $pointsRedeemed = $usePoints ? $maxRedeemableRm * 100 : 0;
-        $discount = $pointsRedeemed / 100;
-        $payable = max(0, $subtotal - $discount);
+        $pointsDiscount = $pointsRedeemed / 100;
+
+        // Shipping
+        if (!isset($this->shippingOptions[$shippingMethod])) {
+            $shippingMethod = 'standard';
+        }
+        $shippingFee = (float) $this->shippingOptions[$shippingMethod]['fee'];
+
+        // Simple voucher implementation (flat amount or percentage)
+        $voucherCode = strtoupper(trim($voucherCode));
+        $voucherDiscount = 0.0;
+        $appliedVoucher = '';
+        if ($voucherCode !== '') {
+            $vouchers = [
+                // code => [type, value, min_subtotal]
+                'SAVE10' => ['type' => 'amount', 'value' => 10.0, 'min' => 100.0],
+                'SAVE50' => ['type' => 'amount', 'value' => 50.0, 'min' => 500.0],
+                'OFF5'   => ['type' => 'percent', 'value' => 5.0, 'min' => 0.0],
+            ];
+            if (isset($vouchers[$voucherCode]) && $subtotal >= $vouchers[$voucherCode]['min']) {
+                $config = $vouchers[$voucherCode];
+                if ($config['type'] === 'amount') {
+                    $voucherDiscount = min($config['value'], $subtotal);
+                } else {
+                    $voucherDiscount = round($subtotal * ($config['value'] / 100), 2);
+                }
+                $appliedVoucher = $voucherCode;
+            }
+        }
+
+        $baseTotal = max(0.0, $subtotal - $pointsDiscount - $voucherDiscount);
+        $payable = $baseTotal + $shippingFee;
 
         return [
             'subtotal' => $subtotal,
             'available_points' => $availablePoints,
             'max_redeemable_rm' => $maxRedeemableRm,
             'points_redeemed' => $pointsRedeemed,
-            'discount' => $discount,
+            'points_discount' => $pointsDiscount,
+            'voucher_code' => $appliedVoucher,
+            'voucher_discount' => $voucherDiscount,
+            'shipping_method' => $shippingMethod,
+            'shipping_fee' => $shippingFee,
             'payable_total' => $payable,
             'use_points' => $usePoints,
         ];

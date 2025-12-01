@@ -192,6 +192,41 @@ a {
     font-size: 1rem;
 }
 
+.cart-summary-row.reward-row {
+    align-items: center;
+    gap: 1rem;
+}
+
+.reward-toggle {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    max-width: 260px;
+}
+
+.reward-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.reward-checkbox input {
+    margin-top: 0;
+}
+
+.reward-label-main {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.reward-deduction {
+    white-space: nowrap;
+    margin-left: auto;
+}
+
 .cart-summary-row.total-due {
     border-top: 1px solid #e0e7f1;
     padding-top: 0.5rem;

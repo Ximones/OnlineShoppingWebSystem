@@ -6,6 +6,7 @@
             <?php if (auth_user()): ?>
                 <a href="?module=cart&action=index">Cart</a>
                 <a href="?module=orders&action=history">Orders</a>
+                <a href="?module=vouchers&action=index">Vouchers</a>
                 <a href="?module=profile&action=index">Profile</a>
                 <?php if (is_admin()): ?>
                     <div class="dropdown">
@@ -13,6 +14,7 @@
                         <div class="dropdown-menu">
                             <a href="?module=admin&resource=members&action=index">Members</a>
                             <a href="?module=admin&resource=products&action=index">Products</a>
+                            <a href="?module=admin&resource=vouchers&action=index">Vouchers</a>
                             <a href="?module=orders&action=admin">Orders</a>
                         </div>
                     </div>

@@ -59,17 +59,14 @@
                     <strong>RM <span id="selected-total" data-initial="<?= number_format($grand, 2, '.', ''); ?>"><?= number_format($grand, 2); ?></span></strong>
                 </div>
                 <div class="cart-summary-row reward-row">
-                    <div>
+                    <div class="reward-toggle">
                         <input type="hidden" name="use_points" value="0">
-                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label class="reward-checkbox">
                             <input type="checkbox" id="use-points-toggle" name="use_points" value="1" <?= $maxRmFromPoints > 0 ? '' : 'disabled'; ?>>
-                            Use reward points
+                            <span class="reward-label-main">Use reward points · You have <?= number_format($availablePoints, 0); ?> pts</span>
                         </label>
-                        <p style="margin: 0.2rem 0 0; color: #555; font-size: 0.85rem;">
-                            You have <?= number_format($availablePoints, 0); ?> pts (RM <?= number_format($maxRmFromPoints, 2); ?> max)
-                        </p>
                     </div>
-                    <strong>- RM <span id="points-deduction">0.00</span></strong>
+                    <strong class="reward-deduction">- RM <span id="points-deduction">0.00</span> (<span id="points-used">0</span> pts)</strong>
                 </div>
                 <div class="cart-summary-row total-due">
                     <span>Payable Total</span>
@@ -103,6 +100,7 @@
     const selectedTotalEl = document.getElementById('selected-total');
     const payableTotalEl = document.getElementById('payable-total');
     const deductionEl = document.getElementById('points-deduction');
+    const pointsUsedEl = document.getElementById('points-used');
 
     if (!selectedTotalEl || !payableTotalEl || !deductionEl) {
         return;
@@ -148,8 +146,11 @@
         updateLineTotals();
         const selectedTotal = calculateSelectedTotal();
         selectedTotalEl.textContent = selectedTotal.toFixed(2);
-        const {discount} = calculateDeduction(selectedTotal);
+        const {discount, pointsUsed} = calculateDeduction(selectedTotal);
         deductionEl.textContent = discount.toFixed(2);
+        if (pointsUsedEl) {
+            pointsUsedEl.textContent = (pointsUsed || 0).toLocaleString();
+        }
         payableTotalEl.textContent = Math.max(0, selectedTotal - discount).toFixed(2);
         if (selectAll) {
             selectAll.checked = getItemCheckboxes().every(function(cb) { return cb.checked; });

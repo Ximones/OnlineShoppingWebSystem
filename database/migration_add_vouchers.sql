@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS vouchers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    type VARCHAR(20) NOT NULL,
+    value DECIMAL(10,2) NOT NULL DEFAULT 0,
+    min_subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
+    max_discount DECIMAL(10,2) NULL,
+    max_claims INT NULL,
+    is_shipping_only TINYINT(1) NOT NULL DEFAULT 0,
+    is_first_order_only TINYINT(1) NOT NULL DEFAULT 0,
+    start_at DATETIME NULL,
+    end_at DATETIME NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_vouchers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    voucher_id INT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    used_at DATETIME NULL,
+    order_id INT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE
+);
+
+

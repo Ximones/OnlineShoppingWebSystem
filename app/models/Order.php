@@ -41,7 +41,12 @@ class Order
             $pointsRedeemed = min($pointsRequested, $maxPointsFromBalance - ($maxPointsFromBalance % 100), $maxPointsFromTotal);
             $pointsRedeemed = max(0, $pointsRedeemed);
             $discount = $pointsRedeemed / 100;
-            $payableTotal = max(0, $total - $discount);
+
+            $shippingFee = max(0.0, (float)($options['shipping_fee'] ?? 0));
+            $voucherDiscount = max(0.0, (float)($options['voucher_discount'] ?? 0));
+
+            $baseTotal = max(0, $total - $discount - $voucherDiscount);
+            $payableTotal = $baseTotal + $shippingFee;
 
             $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address) VALUES (?, ?, ?, "pending", ?, ?, ?)');
             $stm->execute([
@@ -63,7 +68,8 @@ class Order
                 $pdo->prepare('UPDATE users SET reward_points = GREATEST(0, reward_points - ?), updated_at = NOW() WHERE id = ?')->execute([$pointsRedeemed, $userId]);
             }
 
-            $pointsEarned = calculate_reward_points($payableTotal);
+            // Earn points based on merchandise spend after voucher/points, excluding shipping
+            $pointsEarned = calculate_reward_points($baseTotal);
             if ($pointsEarned > 0) {
                 $pdo->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')->execute([$pointsEarned, $userId]);
             }
@@ -111,6 +117,13 @@ class Order
         $stm = $this->db->prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC');
         $stm->execute([$userId]);
         return $stm->fetchAll();
+    }
+
+    public function countByUser(int $userId): int
+    {
+        $stm = $this->db->prepare('SELECT COUNT(*) FROM orders WHERE user_id = ?');
+        $stm->execute([$userId]);
+        return (int) $stm->fetchColumn();
     }
 
     public function detail(int $id): ?array
