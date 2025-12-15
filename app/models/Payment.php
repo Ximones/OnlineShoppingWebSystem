@@ -78,6 +78,18 @@ class Payment
         $stm->execute([$paymentId, $userId]);
         return $stm->fetch() ?: null;
     }
+
+    public function completedPayLaterForUser(int $userId): array
+    {
+        $sql = 'SELECT p.*, o.user_id, o.status AS order_status
+                FROM payments p
+                INNER JOIN orders o ON o.id = p.order_id
+                WHERE o.user_id = ? AND p.payment_method = "PayLater" AND p.status = "completed"
+                ORDER BY p.payment_date DESC';
+        $stm = $this->db->prepare($sql);
+        $stm->execute([$userId]);
+        return $stm->fetchAll();
+    }
 }
 
 

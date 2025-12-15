@@ -463,6 +463,76 @@ main.container {
     margin: var(--space-md) 0;
 }
 
+/* --- PayLater summary --- */
+
+.paylater-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.paylater-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.paylater-summary-card {
+    border-radius: 18px;
+    padding: 0.9rem 1.1rem;
+    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 60%, #eef3ff 100%);
+    border: 1px solid rgba(210, 210, 215, 0.7);
+}
+
+.paylater-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.paylater-value {
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.paylater-tabs-panel {
+    margin-top: var(--space-md);
+}
+
+.paylater-tabs {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 0.15rem;
+    background: rgba(245, 245, 247, 0.9);
+    border: 1px solid rgba(210, 210, 215, 0.7);
+    margin-bottom: 0.9rem;
+}
+
+.paylater-tab-btn {
+    border: none;
+    background: transparent;
+    padding: 0.4rem 1.1rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.paylater-tab-btn.is-active {
+    background: #ffffff;
+    color: var(--color-text);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.paylater-tab-content {
+    display: none;
+}
+
+.paylater-tab-content.is-active {
+    display: block;
+}
+
 /* Voucher cards: unified layout with bottom-pinned claim button */
 
 .voucher-card {
@@ -552,7 +622,7 @@ main.container {
 
 #toast-container {
     position: fixed;
-    top: 6rem;
+    top: 7rem;
     right: 1.5rem;
     z-index: 50;
     display: flex;
@@ -563,7 +633,7 @@ main.container {
 
 .alert {
     padding: 0.75rem 1rem;
-    border-radius: 999px;
+    border-radius: 14px;
     font-size: 0.9rem;
     display: flex;
     align-items: center;

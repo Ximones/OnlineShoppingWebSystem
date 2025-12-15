@@ -22,7 +22,18 @@ class BillController extends Controller
         $this->requireAuth();
         $userId = auth_id();
         $bills = $this->payments->pendingPayLaterForUser($userId);
-        $this->render('bills/index', compact('bills'));
+        $history = $this->payments->completedPayLaterForUser($userId);
+        $originalLimit = 10000.0;
+        $usedPrincipal = $this->payments->outstandingPayLaterPrincipal($userId);
+        $availableLimit = max(0.0, $originalLimit - $usedPrincipal);
+
+        $this->render('bills/index', [
+            'bills' => $bills,
+            'history' => $history,
+            'originalLimit' => $originalLimit,
+            'usedPrincipal' => $usedPrincipal,
+            'availableLimit' => $availableLimit,
+        ]);
     }
 
     public function pay(): void

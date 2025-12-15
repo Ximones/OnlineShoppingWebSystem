@@ -63,5 +63,17 @@ $(function () {
 
     initScrollShell('.home-products-shell', '.home-products-row', '.home-product-card', 320);
     initScrollShell('.store-top-shell', '.store-top-row', '.store-top-item', 200);
+
+    // PayLater tabs (upcoming vs history)
+    $(document).on('click', '.paylater-tab-btn', function () {
+        const targetId = $(this).data('target');
+        const $panel = $(this).closest('.paylater-tabs-panel');
+
+        $panel.find('.paylater-tab-btn').removeClass('is-active');
+        $(this).addClass('is-active');
+
+        $panel.find('.paylater-tab-content').removeClass('is-active');
+        $panel.find('#' + targetId).addClass('is-active');
+    });
 });
 

@@ -7,7 +7,7 @@ $otherProducts = $otherProducts ?? [];
 
 <section class="store-top-nav">
     <div class="store-top-nav-inner">
-        <h1 class="store-top-title">Store</h1>
+        <h1 class="store-top-title">Welcome.</h1>
         <div class="store-top-shell">
             <button class="home-products-nav home-products-nav-left" type="button" aria-label="Previous categories">
                 ‹
