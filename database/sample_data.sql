@@ -11,7 +11,10 @@ INSERT INTO categories (name, description) VALUES
 ('Wall-Mounted Toilet', 'Space-saving wall-mounted toilet bowls'),
 ('Smart Toilet', 'Advanced smart toilet bowls with bidet and heating features'),
 ('Compact Toilet', 'Space-efficient compact toilet bowls for small bathrooms'),
-('Accessories', 'Brushes, cleaners and other toilet accessories');
+('Brushes', 'Brushes and related toilet cleaning accessories'),
+('Bidets', 'Standalone and add-on bidet products'),
+('Seats', 'Toilet seats and covers'),
+('Mats', 'Bathroom and toilet floor mats');
 
 INSERT INTO products (category_id, sku, name, description, price, stock, photo) VALUES
 (1, 'TLT-1001', 'Elite One-Piece Round Toilet', 'Premium one-piece round toilet with soft-close seat. Water-saving dual flush system. Easy to clean design.', 899.00, 25, '/images/toilet1.jpg'),

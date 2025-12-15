@@ -23,17 +23,30 @@ class ShopController extends Controller
 
         $toiletProducts = [];
         $accessoryProducts = [];
+        $otherProducts = [];
         foreach ($allProducts as $product) {
-            if (strcasecmp($product['category_name'] ?? '', 'Accessories') === 0) {
+            $catName = strtolower($product['category_name'] ?? '');
+
+            // Brushes / cleaning bucket
+            if (in_array($catName, ['cleaning', 'brushes'], true)) {
                 $accessoryProducts[] = $product;
-            } else {
-                $toiletProducts[] = $product;
+                continue;
             }
+
+            // Other accessories bucket: bidets, seats, mats
+            if (in_array($catName, ['bidets', 'bidet', 'seats', 'mats'], true)) {
+                $otherProducts[] = $product;
+                continue;
+            }
+
+            // Default: toilet bowls and other main fixtures
+            $toiletProducts[] = $product;
         }
 
         // Only show latest few items in each section
         $toiletProducts = array_slice($toiletProducts, 0, 6);
         $accessoryProducts = array_slice($accessoryProducts, 0, 6);
+        $otherProducts = array_slice($otherProducts, 0, 6);
 
         // Fallback: if we somehow have no toilet products but do have items,
         // show the latest overall products so the homepage is never empty.
@@ -45,6 +58,7 @@ class ShopController extends Controller
         $this->render('shop/home', [
             'toiletProducts' => $toiletProducts,
             'accessoryProducts' => $accessoryProducts,
+            'otherProducts' => $otherProducts,
             'categories' => $categories,
         ]);
     }

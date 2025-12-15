@@ -34,28 +34,34 @@ $(function () {
         $alert.on('click', hide);
     });
 
-    // Home products rows: each section's arrows control its own row
-    $('.home-products-shell').each(function () {
-        const $shell = $(this);
-        const $row = $shell.find('.home-products-row');
-        if (!$row.length) return;
-        const rowEl = $row.get(0);
+    // Generic horizontal scroll shells (home products + store top bar)
+    const initScrollShell = function (shellSelector, rowSelector, cardSelector, stepFallback) {
+        $(shellSelector).each(function () {
+            const $shell = $(this);
+            const $row = $shell.find(rowSelector);
+            if (!$row.length) return;
+            const rowEl = $row.get(0);
 
-        const scrollByCard = function (direction) {
-            const cardWidth = $row.find('.home-product-card').first().outerWidth(true) || 320;
-            rowEl.scrollBy({
-                left: direction * cardWidth,
-                behavior: 'smooth',
+            const scrollByCard = function (direction) {
+                const $card = $row.find(cardSelector).first();
+                const cardWidth = $card.length ? $card.outerWidth(true) : stepFallback;
+                rowEl.scrollBy({
+                    left: direction * cardWidth,
+                    behavior: 'smooth',
+                });
+            };
+
+            $shell.find('.home-products-nav-left').on('click', function () {
+                scrollByCard(-1);
             });
-        };
 
-        $shell.find('.home-products-nav-left').on('click', function () {
-            scrollByCard(-1);
+            $shell.find('.home-products-nav-right').on('click', function () {
+                scrollByCard(1);
+            });
         });
+    };
 
-        $shell.find('.home-products-nav-right').on('click', function () {
-            scrollByCard(1);
-        });
-    });
+    initScrollShell('.home-products-shell', '.home-products-row', '.home-product-card', 320);
+    initScrollShell('.store-top-shell', '.store-top-row', '.store-top-item', 200);
 });
 
