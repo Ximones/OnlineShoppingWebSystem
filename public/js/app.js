@@ -34,9 +34,10 @@ $(function () {
         $alert.on('click', hide);
     });
 
-    // Home products row: scroll with nav buttons instead of scrollbar
-    const initHomeRow = function (rowSelector, leftSelector, rightSelector) {
-        const $row = $(rowSelector);
+    // Home products rows: each section's arrows control its own row
+    $('.home-products-shell').each(function () {
+        const $shell = $(this);
+        const $row = $shell.find('.home-products-row');
         if (!$row.length) return;
         const rowEl = $row.get(0);
 
@@ -48,16 +49,13 @@ $(function () {
             });
         };
 
-        $(leftSelector).on('click', function () {
+        $shell.find('.home-products-nav-left').on('click', function () {
             scrollByCard(-1);
         });
 
-        $(rightSelector).on('click', function () {
+        $shell.find('.home-products-nav-right').on('click', function () {
             scrollByCard(1);
         });
-    };
-
-    initHomeRow('#home-products-row-toilets', '.home-products:nth-of-type(1) .home-products-nav-left', '.home-products:nth-of-type(1) .home-products-nav-right');
-    initHomeRow('#home-products-row-accessories', '.home-products:nth-of-type(2) .home-products-nav-left', '.home-products:nth-of-type(2) .home-products-nav-right');
+    });
 });
 
