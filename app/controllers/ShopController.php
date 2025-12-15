@@ -19,9 +19,34 @@ class ShopController extends Controller
 
     public function home(): void
     {
-        $products = $this->products->all(['status' => 'active']);
+        $allProducts = $this->products->all(['status' => 'active']);
+
+        $toiletProducts = [];
+        $accessoryProducts = [];
+        foreach ($allProducts as $product) {
+            if (strcasecmp($product['category_name'] ?? '', 'Accessories') === 0) {
+                $accessoryProducts[] = $product;
+            } else {
+                $toiletProducts[] = $product;
+            }
+        }
+
+        // Only show latest few items in each section
+        $toiletProducts = array_slice($toiletProducts, 0, 6);
+        $accessoryProducts = array_slice($accessoryProducts, 0, 6);
+
+        // Fallback: if we somehow have no toilet products but do have items,
+        // show the latest overall products so the homepage is never empty.
+        if (empty($toiletProducts) && !empty($allProducts)) {
+            $toiletProducts = array_slice($allProducts, 0, 6);
+        }
+
         $categories = $this->categories->all();
-        $this->render('shop/home', compact('products', 'categories'));
+        $this->render('shop/home', [
+            'toiletProducts' => $toiletProducts,
+            'accessoryProducts' => $accessoryProducts,
+            'categories' => $categories,
+        ]);
     }
 
     public function catalog(): void

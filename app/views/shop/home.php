@@ -1,4 +1,8 @@
-<?php $title = 'Welcome'; ?>
+<?php
+$title = 'Welcome';
+$toiletProducts = $toiletProducts ?? [];
+$accessoryProducts = $accessoryProducts ?? [];
+?>
 
 <section class="store-top-nav">
     <div class="store-top-nav-inner">
