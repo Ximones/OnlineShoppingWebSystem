@@ -1,6 +1,8 @@
 <header class="site-header">
     <div class="container header-flex">
-        <a href="<?= asset('?module=shop&action=home'); ?>" class="logo"><?= APP_NAME; ?></a>
+        <a href="<?= asset('?module=shop&action=home'); ?>" class="logo">
+            <img src="<?= asset('app/logo/dblogo.png'); ?>" alt="<?= APP_NAME; ?>" class="logo-img">
+        </a>
         <nav class="nav">
             <a href="?module=shop&action=catalog">Products</a>
             <?php if (auth_user()): ?>

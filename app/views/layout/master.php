@@ -11,14 +11,17 @@ $title = $title ?? APP_NAME;
 </head>
 <body>
 <?php include __DIR__ . '/_header.php'; ?>
-<main class="container">
+
+<div id="toast-container">
     <?php if (!empty($flashSuccess)): ?>
         <div class="alert alert-success"><?= encode($flashSuccess); ?></div>
     <?php endif; ?>
     <?php if (!empty($flashDanger)): ?>
         <div class="alert alert-danger"><?= encode($flashDanger); ?></div>
     <?php endif; ?>
+</div>
 
+<main class="container">
     <?= $content ?? ''; ?>
 </main>
 <?php include __DIR__ . '/_footer.php'; ?>
