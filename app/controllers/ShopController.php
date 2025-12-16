@@ -65,9 +65,14 @@ class ShopController extends Controller
 
     public function catalog(): void
     {
+        $minPriceRaw = get('min_price');
+        $maxPriceRaw = get('max_price');
+        
         $filters = [
             'keyword' => get('keyword', ''),
             'category_id' => get('category_id', ''),
+            'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
+            'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
         ];
         $products = $this->products->all($filters);
         $categories = $this->categories->all();

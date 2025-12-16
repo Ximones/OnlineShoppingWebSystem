@@ -1,18 +1,44 @@
 <?php $title = 'Product Catalog'; ?>
 <section class="panel">
-    <form method="get" class="form-inline">
+    <form method="get" class="search-panel">
         <input type="hidden" name="module" value="shop">
         <input type="hidden" name="action" value="catalog">
-        <input type="text" name="keyword" placeholder="Search keyword" value="<?= encode($filters['keyword'] ?? ''); ?>">
-        <select name="category_id">
-            <option value="">All Categories</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?= $category['id']; ?>" <?= ($filters['category_id'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
-                    <?= encode($category['name']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button class="btn primary">Search</button>
+
+        <div class="input-group full-width-input">
+            <input type="text" name="keyword" placeholder="Search keyword" value="<?= encode($filters['keyword'] ?? ''); ?>">
+        </div>
+
+        <div class="input-group full-width-input">
+            <select name="category_id">
+                <option value="">All Categories</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?= $category['id']; ?>" <?= ($filters['category_id'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
+                        <?= encode($category['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+<div class="price-range-line">
+    
+    <div class="price-input-wrapper">
+        <span class="currency-prefix">RM</span>
+        <input type="number" name="min_price" placeholder="Min" 
+               value="<?= encode($filters['min_price'] ?? ''); ?>" min="0">
+    </div>
+    
+    <span class="price-separator">-</span> 
+    
+    <div class="price-input-wrapper">
+        <span class="currency-prefix">RM</span>
+        <input type="number" name="max_price" placeholder="Max" 
+               value="<?= encode($filters['max_price'] ?? ''); ?>" min="0">
+    </div>
+    
+</div>
+        
+        <button class="btn primary search-btn full-width-button">Search</button>
+            
     </form>
 </section>
 

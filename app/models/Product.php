@@ -35,6 +35,16 @@ class Product
             $params[] = $filters['category_id'];
         }
 
+        if (isset($filters['min_price']) && is_numeric($filters['min_price'])) {
+            $sql .= ' AND p.price >= ?';
+            $params[] = $filters['min_price'];
+        }
+        
+        if (isset($filters['max_price']) && is_numeric($filters['max_price'])) {
+            $sql .= ' AND p.price <= ?';
+            $params[] = $filters['max_price'];
+        }
+
         $sql .= ' ORDER BY p.created_at DESC';
 
         $stm = $this->db->prepare($sql);
