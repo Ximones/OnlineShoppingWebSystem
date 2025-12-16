@@ -81,6 +81,21 @@ class UserVoucher
         $stm = $this->db->prepare('UPDATE user_vouchers SET status = "used", order_id = ?, used_at = NOW() WHERE id = ?');
         $stm->execute([$orderId, $userVoucherId]);
     }
+
+    /**
+     * Get total claim counts per voucher (all users).
+     *
+     * @return array<int,array{voucher_id:int,total_claims:int}>
+     */
+    public function countsByVoucher(): array
+    {
+        $sql = 'SELECT voucher_id, COUNT(*) AS total_claims
+                FROM user_vouchers
+                GROUP BY voucher_id';
+        $stm = $this->db->prepare($sql);
+        $stm->execute();
+        return $stm->fetchAll();
+    }
 }
 
 

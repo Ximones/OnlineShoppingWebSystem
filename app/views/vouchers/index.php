@@ -1,4 +1,8 @@
 <?php $title = 'Vouchers'; ?>
+<?php
+$claimedByUser = $claimedByUser ?? [];
+$claimCounts = $claimCounts ?? [];
+?>
 
 <section class="panel">
     <h2 style="margin-top: 0;">Available Vouchers</h2>
@@ -7,6 +11,29 @@
     <?php else: ?>
         <div class="vouchers-grid">
             <?php foreach ($allVouchers as $voucher): ?>
+                <?php
+                $voucherId = (int) $voucher['id'];
+                $userStatus = $claimedByUser[$voucherId] ?? null;
+                $totalClaims = $claimCounts[$voucherId] ?? 0;
+                $maxClaims = $voucher['max_claims'] !== null ? (int) $voucher['max_claims'] : null;
+
+                $isClaimed = $userStatus !== null;
+                $isSoldOut = $maxClaims !== null && $totalClaims >= $maxClaims;
+
+                if ($isSoldOut) {
+                    $btnLabel = 'Fully Redeemed';
+                    $btnClass = 'btn is-disabled';
+                    $btnDisabled = true;
+                } elseif ($isClaimed) {
+                    $btnLabel = 'Claimed';
+                    $btnClass = 'btn is-disabled';
+                    $btnDisabled = true;
+                } else {
+                    $btnLabel = 'Claim Voucher';
+                    $btnClass = 'btn primary';
+                    $btnDisabled = false;
+                }
+                ?>
                 <div class="voucher-card-new">
                     <div class="voucher-card-header">
                         <div class="voucher-card-icon">
@@ -55,7 +82,11 @@
                     </div>
                     <form method="post" action="?module=vouchers&action=claim" class="voucher-card-footer">
                         <input type="hidden" name="voucher_id" value="<?= $voucher['id']; ?>">
-                        <button type="submit" class="btn primary">Claim Voucher</button>
+                        <button type="submit"
+                                class="<?= $btnClass; ?>"
+                                <?= $btnDisabled ? 'disabled' : ''; ?>>
+                            <?= encode($btnLabel); ?>
+                        </button>
                     </form>
                 </div>
             <?php endforeach; ?>

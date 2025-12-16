@@ -39,7 +39,16 @@
                                 checked
                             >
                         </td>
-                        <td><?= encode($item['name']); ?></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <?php if (!empty($item['photo'])): ?>
+                                    <img src="<?= encode($item['photo']); ?>" 
+                                         alt="<?= encode($item['name']); ?>"
+                                         class="cart-item-thumbnail">
+                                <?php endif; ?>
+                                <span><?= encode($item['name']); ?></span>
+                            </div>
+                        </td>
                         <td>
                             <input type="number" id="qty-<?= $item['id']; ?>" name="items[<?= $item['id']; ?>]" value="<?= $item['quantity']; ?>" min="1">
                         </td>
