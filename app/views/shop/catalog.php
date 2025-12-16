@@ -49,6 +49,21 @@
             <h3><?= encode($product['name']); ?></h3>
             <p><?= encode(substr($product['description'], 0, 100)); ?>...</p>
             <p class="price">RM <?= number_format($product['price'], 2); ?></p>
+            
+            <?php 
+                // NOTE: You MUST update your controller that generates $products
+                // to include a new boolean field 'is_favorited' for EACH product.
+                $isFavorited = $product['is_favorited'] ?? false;
+                $iconType = $isFavorited ? 'fas' : 'far';
+                $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
+            ?>
+            <span 
+                class="favorite-toggle" 
+                data-product-id="<?= $product['id']; ?>" 
+                data-is-favorited="<?= $isFavorited ? 'true' : 'false' ?>"
+            >
+                <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
+            </span>
             <a class="btn secondary" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
         </article>
     <?php endforeach; ?>

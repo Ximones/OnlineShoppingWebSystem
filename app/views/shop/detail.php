@@ -3,8 +3,25 @@
     <img src="<?= encode($product['photo'] ?? 'https://placehold.co/500x400'); ?>" alt="<?= encode($product['name']); ?>">
     <div>
         <h1><?= encode($product['name']); ?></h1>
+        
+        <?php 
+            // NOTE: $isFavorited must be set by the shop controller before rendering
+            $isFavorited = $isFavorited ?? false; 
+            $iconType = $isFavorited ? 'fas' : 'far';
+            $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
+        ?>
+        <p class="price-line">
+            <span class="price">RM <?= number_format($product['price'], 2); ?></span>
+            <span 
+                class="favorite-toggle" 
+                data-product-id="<?= $product['id']; ?>" 
+                data-is-favorited="<?= $isFavorited ? 'true' : 'false' ?>"
+            >
+                <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
+            </span>
+        </p>
         <p><?= nl2br(encode($product['description'])); ?></p>
-        <p class="price">RM <?= number_format($product['price'], 2); ?></p>
+        
         <form method="post" action="?module=cart&action=add">
             <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
             <label>Quantity</label>
@@ -13,4 +30,3 @@
         </form>
     </div>
 </section>
-

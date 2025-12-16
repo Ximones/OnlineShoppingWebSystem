@@ -75,5 +75,69 @@ $(function () {
         $panel.find('.paylater-tab-content').removeClass('is-active');
         $panel.find('#' + targetId).addClass('is-active');
     });
+
+    // --- FAVORITES TOGGLE LOGIC ---
+    const initFavoriteToggle = function() {
+    // Select all favorite toggle elements on the page
+    const toggleButtons = document.querySelectorAll('.favorite-toggle');
+
+    toggleButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            
+            // Get necessary data from the clicked element
+            const productId = this.dataset.productId;
+            const iconElement = this.querySelector('i.fa-heart');
+
+            // 1. Send AJAX Request to the Controller
+            fetch('?module=favorites&action=toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ product_id: productId })
+            })
+            .then(response => {
+                // Check for login required (401 error, redirect)
+                if (response.status === 401) {
+                    alert('Please log in to add items to your favorites.');
+                    window.location.href = '?module=auth&action=login'; 
+                    return Promise.reject('Login required');
+                }
+                
+                // Handle general errors (e.g., Invalid Product ID 400, DB failure 500)
+                if (!response.ok) {
+                    return response.json().then(error => Promise.reject(error.message));
+                }
+                
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // 2. Update Icon and Data Attributes on Success
+                    const newIsFavorited = data.action === 'added';
+                    
+                    // Update data attribute for future clicks
+                    this.dataset.isFavorited = newIsFavorited ? 'true' : 'false';
+
+                    // Toggle Font Awesome classes:
+                    // newIsFavorited (true) -> solid heart (fas) and custom color
+                    // newIsFavorited (false) -> outline heart (far) and black outline
+                    iconElement.classList.toggle('fas', newIsFavorited);
+                    iconElement.classList.toggle('far', !newIsFavorited);
+                    
+                    iconElement.classList.toggle('red-filled-heart', newIsFavorited);
+                    iconElement.classList.toggle('black-outline-heart', !newIsFavorited);
+                }
+            })
+            .catch(error => {
+                console.error('Favorite toggle error:', error);
+                // Optionally show a general error toast here.
+            });
+        });
+    });
+    };
+    initFavoriteToggle();
+
 });
 
