@@ -68,34 +68,41 @@ class ShopController extends Controller
     }
 
     public function catalog(): void
-    {
-        $minPriceRaw = get('min_price');
-        $maxPriceRaw = get('max_price');
+{
+    $minPriceRaw = get('min_price');
+    $maxPriceRaw = get('max_price');
+    
+    // 1. Capture the sort value from the request
+    $sort = get('sort', ''); 
 
-        $filters = [
-            'keyword' => get('keyword', ''),
-            'category_id' => get('category_id', ''),
-            'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
-            'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
-        ];
-        $products = $this->products->all($filters);
-        $categories = $this->categories->all();
+    $filters = [
+        'keyword' => get('keyword', ''),
+        'category_id' => get('category_id', ''),
+        'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
+        'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
+        'sort' => $sort, // 2. Add it to the filters array
+    ];
 
-         $user = auth_user();
+    // Your Model's all() method needs to be updated to handle $filters['sort']
+    $products = $this->products->all($filters);
+    
+    $categories = $this->categories->all();
+
+    $user = auth_user();
 
     if ($user && !empty($products)) {
         $userId = $user['id'];
-
         foreach ($products as &$product) {
             $product['is_favorited'] = $this->favorites->checkFavorite(
                 $userId,
                 $product['id']
             );
         }
-        unset($product); // prevent reference bugs
+        unset($product);
     }
-        $this->render('shop/catalog', compact('products', 'categories', 'filters'));
-    }
+    
+    $this->render('shop/catalog', compact('products', 'categories', 'filters'));
+}
 
     public function detail(): void
     {

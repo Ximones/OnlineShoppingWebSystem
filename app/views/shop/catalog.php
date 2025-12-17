@@ -41,8 +41,19 @@ $productPhotoModel = new ProductPhoto();
                 <input type="number" name="max_price" placeholder="Max"
                     value="<?= encode($filters['max_price'] ?? ''); ?>" min="0">
             </div>
-
         </div>
+        
+        <div class="input-group full-width-input">
+            <select name="sort">
+                <option value="">Sort By: Default</option>
+                <option value="price_asc" <?= ($filters['sort'] ?? '') == 'price_asc' ? 'selected' : ''; ?>>
+                    Price: Low to High
+                </option>
+                <option value="price_desc" <?= ($filters['sort'] ?? '') == 'price_desc' ? 'selected' : ''; ?>>
+                     Price: High to Low
+        </option>
+    </select>
+</div>
 
         <button class="btn primary search-btn full-width-button">Search</button>
 
