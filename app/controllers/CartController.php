@@ -10,8 +10,7 @@ use App\Models\SavedAddress;
 use App\Models\User;
 use App\Models\Payment;
 use App\Models\UserVoucher;
-use Stripe\Stripe;
-use Stripe\Checkout\Session;
+use App\Services\StripeService;
 
 class CartController extends Controller
 {
@@ -273,12 +272,7 @@ class CartController extends Controller
                         );
                     }
                 } elseif ($paymentMethod === 'Credit Card') {
-
-                    Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
-
-                    $DOMAIN = APP_URL;
-
-                    // Prepare items for Stripe
+                    // 1. Prepare Items
                     $lineItems = [];
                     foreach ($items as $item) {
                         $lineItems[] = [
@@ -291,20 +285,18 @@ class CartController extends Controller
                         ];
                     }
 
-                    // Create Session
-                    $checkout_session = Session::create([
-                        'line_items' => $lineItems,
-                        'mode' => 'payment',
-                        'payment_method_types' => ['card', 'fpx'],
-                        // Redirect back to our success handler
-                        'success_url' => $DOMAIN . '/?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId,
-                        'cancel_url' => $DOMAIN . '/?module=cart&action=stripe_cancel&order_id=' . $orderId,
-                    ]);
+                    // 2. Use the Service
+                    $stripe = new StripeService();
+                    $session = $stripe->createCheckoutSession(
+                        $lineItems,
+                        APP_URL . '/?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId,
+                        APP_URL . '/?module=cart&action=stripe_cancel&order_id=' . $orderId
+                    );
 
+                    // 3. Redirect
                     header("HTTP/1.1 303 See Other");
-                    header("Location: " . $checkout_session->url);
+                    header("Location: " . $session->url);
                     exit();
-                    // === STRIPE INTEGRATION END ===
                 } else {
                     $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
                 }
@@ -469,35 +461,22 @@ class CartController extends Controller
         $sessionId = get('session_id');
         $orderId = get('order_id');
 
-        Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+        $stripe = new StripeService();
 
-        try {
-            $session = Session::retrieve($sessionId);
+        if ($stripe->isPaid($sessionId)) {
+            // 1. Record Payment
+            $amountPaid = $stripe->getAmount($sessionId);
+            $this->payments->create($orderId, 'Credit Card', $amountPaid, $amountPaid, 'completed');
 
-            if ($session->payment_status === 'paid') {
-                // 1. Record the Payment
-                $amountPaid = $session->amount_total / 100;
-                $this->payments->create(
-                    $orderId,
-                    'Credit Card',
-                    $amountPaid,
-                    $amountPaid,
-                    'completed'
-                );
+            // 2. Update Order Status
+            $this->orders->updateStatus($orderId, 'paid');
 
-                // 2. UPDATE ORDER STATUS
-                $this->orders->updateStatus($orderId, 'paid');
+            // 3. Clear Session
+            unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
 
-                // 3. Clear Session
-                unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
-
-                flash('success', 'Payment successful! Order confirmed.');
-                redirect("?module=orders&action=detail&id=$orderId");
-
-                flash('success', 'Payment successful! Order confirmed.');
-                redirect("?module=orders&action=detail&id=$orderId");
-            }
-        } catch (\Exception $e) {
+            flash('success', 'Payment successful! Order confirmed.');
+            redirect("?module=orders&action=detail&id=$orderId");
+        } else {
             flash('danger', 'Payment verification failed.');
             redirect('?module=cart&action=checkout');
         }
@@ -510,20 +489,15 @@ class CartController extends Controller
         $userId = auth_id();
 
         // 1. Mark Order as Cancelled
-        // (Ensure you added the updateStatus method to Order.php in the previous step)
         $this->orders->updateStatus($orderId, 'cancelled');
 
         // 2. Restore Items to Cart
-        // Since createFromCart() emptied the cart, we must put items back 
-        // so the user can try again without searching for products.
         $order = $this->orders->detail($orderId);
 
-        // Security check: ensure this order belongs to the current user
         if ($order && $order['user_id'] == $userId) {
             $cartId = $this->cart->activeCartId($userId);
 
             foreach ($order['items'] as $item) {
-                // Re-add product to cart
                 $this->cart->addItem($cartId, (int)$item['product_id'], (int)$item['quantity']);
             }
         }

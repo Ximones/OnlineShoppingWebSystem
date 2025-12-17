@@ -301,5 +301,4 @@ class Order
         $stm = $this->db->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([$status, $id]);
     }
-
 }
