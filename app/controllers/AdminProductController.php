@@ -5,16 +5,20 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductPhoto;
+use RuntimeException;
 
 class AdminProductController extends Controller
 {
     private Product $products;
     private Category $categories;
+    private ProductPhoto $productPhotos;
 
     public function __construct()
     {
         $this->products = new Product();
         $this->categories = new Category();
+        $this->productPhotos = new ProductPhoto();
     }
 
     public function index(): void
@@ -40,25 +44,18 @@ class AdminProductController extends Controller
             'stock' => ['required' => 'Stock is required.'],
             'category_id' => ['required' => 'Category is required.'],
         ])) {
-            $photo = null;
-            if (!empty($_FILES['photo']['name'])) {
-                try {
-                    $photo = handle_upload('photo');
-                } catch (RuntimeException $ex) {
-                    flash('danger', $ex->getMessage());
-                    redirect('?module=admin&resource=products&action=create');
-                }
-            }
-            $this->products->create([
+            $productId = $this->products->create([
                 'name' => post('name'),
                 'sku' => post('sku'),
                 'description' => post('description'),
                 'price' => post('price'),
                 'stock' => post('stock'),
                 'category_id' => post('category_id'),
-                'photo' => $photo,
                 'status' => post('status', 'active'),
             ]);
+
+            $this->handlePhotoUploads($productId);
+
             flash('success', 'Product created.');
             redirect('?module=admin&resource=products&action=index');
         }
@@ -85,15 +82,6 @@ class AdminProductController extends Controller
                 'stock' => ['required' => 'Stock is required.'],
                 'category_id' => ['required' => 'Category is required.'],
             ])) {
-                $photo = $product['photo'];
-                if (!empty($_FILES['photo']['name'])) {
-                    try {
-                        $photo = handle_upload('photo');
-                    } catch (RuntimeException $ex) {
-                        flash('danger', $ex->getMessage());
-                        redirect("?module=admin&resource=products&action=edit&id=$id");
-                    }
-                }
                 $this->products->update($id, [
                     'name' => post('name'),
                     'sku' => post('sku'),
@@ -101,16 +89,19 @@ class AdminProductController extends Controller
                     'price' => post('price'),
                     'stock' => post('stock'),
                     'category_id' => post('category_id'),
-                    'photo' => $photo,
                     'status' => post('status', 'active'),
                 ]);
+
+                $this->handlePhotoUploads($id);
+
                 flash('success', 'Product updated.');
                 redirect('?module=admin&resource=products&action=index');
             }
         }
 
         $categories = $this->categories->all();
-        $this->render('admin/products/form', compact('product', 'categories'));
+        $photos = $this->productPhotos->getByProductId($id);
+        $this->render('admin/products/form', compact('product', 'categories', 'photos'));
     }
 
     public function delete(): void
@@ -121,6 +112,63 @@ class AdminProductController extends Controller
         flash('success', 'Product deleted.');
         redirect('?module=admin&resource=products&action=index');
     }
+
+    public function deletePhoto(): void
+    {
+        $this->requireAdmin();
+        $photoId = (int) post('photo_id');
+        $productId = (int) post('product_id');
+
+        $this->productPhotos->delete($photoId);
+        flash('success', 'Photo deleted.');
+        redirect("?module=admin&resource=products&action=edit&id=$productId");
+    }
+
+    public function setPrimaryPhoto(): void
+    {
+        $this->requireAdmin();
+        $photoId = (int) post('photo_id');
+        $productId = (int) post('product_id');
+
+        $this->productPhotos->setPrimary($photoId, $productId);
+
+        flash('success', 'Primary photo updated.');
+        redirect("?module=admin&resource=products&action=edit&id=$productId");
+    }
+
+    private function handlePhotoUploads(int $productId): void
+    {
+        if (empty($_FILES['photos']['name'][0])) {
+            return;
+        }
+
+        $photos = $_FILES['photos'];
+
+        // Check if product already has photos
+        $existingPhotos = $this->productPhotos->getByProductId($productId);
+        $isPrimary = empty($existingPhotos); // only first photo primary if no existing photos
+
+        for ($i = 0; $i < count($photos['name']); $i++) {
+            if (empty($photos['name'][$i])) {
+                continue;
+            }
+
+            // Temporarily set single file for handle_upload
+            $_FILES['temp_photo'] = [
+                'name' => $photos['name'][$i],
+                'type' => $photos['type'][$i],
+                'tmp_name' => $photos['tmp_name'][$i],
+                'error' => $photos['error'][$i],
+                'size' => $photos['size'][$i],
+            ];
+
+            try {
+                $photoPath = handle_upload('temp_photo');
+                $this->productPhotos->create($productId, $photoPath, $isPrimary);
+                $isPrimary = false; // only the very first uploaded photo can be primary
+            } catch (\RuntimeException $ex) {
+                flash('danger', $ex->getMessage());
+            }
+        }
+    }
 }
-
-

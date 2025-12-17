@@ -18,7 +18,7 @@ class Order
     public function createFromCart(int $userId, int $cartId, array $shipping, array $options = []): int
     {
         require_once __DIR__ . '/../lib/rewards.php';
-        
+
         return db_transaction(function (PDO $pdo) use ($userId, $cartId, $shipping, $options) {
             $selectedIds = array_filter(array_map('intval', $options['item_ids'] ?? []));
             $items = $this->cartItems($cartId, $selectedIds);
@@ -148,11 +148,24 @@ class Order
         $stm = $this->db->prepare('SELECT * FROM orders WHERE id = ?');
         $stm->execute([$id]);
         $order = $stm->fetch();
+
         if (!$order) {
             return null;
         }
 
-        $stm = $this->db->prepare('SELECT oi.*, p.name, p.photo FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?');
+        $sql = '
+        SELECT 
+            oi.*,
+            p.name,
+            pp.photo_path AS photo
+        FROM order_items oi
+        INNER JOIN products p ON p.id = oi.product_id
+        LEFT JOIN product_photos pp 
+            ON pp.product_id = p.id AND pp.is_primary = 1
+        WHERE oi.order_id = ?
+    ';
+
+        $stm = $this->db->prepare($sql);
         $stm->execute([$id]);
         $order['items'] = $stm->fetchAll();
 
@@ -234,7 +247,20 @@ class Order
         $orders = $stm->fetchAll();
 
         foreach ($orders as &$order) {
-            $stm = $this->db->prepare('SELECT oi.*, p.name, p.photo FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ? LIMIT 3');
+            $sql = '
+            SELECT 
+                oi.*,
+                p.name,
+                pp.photo_path AS photo
+            FROM order_items oi
+            INNER JOIN products p ON p.id = oi.product_id
+            LEFT JOIN product_photos pp 
+                ON pp.product_id = p.id AND pp.is_primary = 1
+            WHERE oi.order_id = ?
+            LIMIT 3
+        ';
+
+            $stm = $this->db->prepare($sql);
             $stm->execute([$order['id']]);
             $order['items'] = $stm->fetchAll();
 
@@ -270,5 +296,3 @@ class Order
         return $stm->fetchAll();
     }
 }
-
-

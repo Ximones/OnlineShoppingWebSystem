@@ -5,16 +5,20 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductPhoto;
+use App\Models\Favorite;
 
 class ShopController extends Controller
 {
     private Product $products;
     private Category $categories;
+    private Favorite $favorites;
 
     public function __construct()
     {
         $this->products = new Product();
         $this->categories = new Category();
+        $this->favorites = new Favorite();
     }
 
     public function home(): void
@@ -64,31 +68,67 @@ class ShopController extends Controller
     }
 
     public function catalog(): void
-    {
-        $minPriceRaw = get('min_price');
-        $maxPriceRaw = get('max_price');
-        
-        $filters = [
-            'keyword' => get('keyword', ''),
-            'category_id' => get('category_id', ''),
-            'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
-            'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
-        ];
-        $products = $this->products->all($filters);
-        $categories = $this->categories->all();
-        $this->render('shop/catalog', compact('products', 'categories', 'filters'));
+{
+    $minPriceRaw = get('min_price');
+    $maxPriceRaw = get('max_price');
+    
+    // 1. Capture the sort value from the request
+    $sort = get('sort', ''); 
+
+    $filters = [
+        'keyword' => get('keyword', ''),
+        'category_id' => get('category_id', ''),
+        'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
+        'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
+        'sort' => $sort, // 2. Add it to the filters array
+    ];
+
+    // Your Model's all() method needs to be updated to handle $filters['sort']
+    $products = $this->products->all($filters);
+    
+    $categories = $this->categories->all();
+
+    $user = auth_user();
+
+    if ($user && !empty($products)) {
+        $userId = $user['id'];
+        foreach ($products as &$product) {
+            $product['is_favorited'] = $this->favorites->checkFavorite(
+                $userId,
+                $product['id']
+            );
+        }
+        unset($product);
     }
+    
+    $this->render('shop/catalog', compact('products', 'categories', 'filters'));
+}
 
     public function detail(): void
     {
         $id = (int) get('id');
         $product = $this->products->find($id);
+
         if (!$product) {
             flash('danger', 'Product not found.');
             redirect('?module=shop&action=catalog');
         }
-        $this->render('shop/detail', compact('product'));
+
+        $productPhotos = new ProductPhoto();
+        $photos = $productPhotos->getByProductId($id);
+
+        
+        // --- START: ADD FAVORITE CHECK FOR DETAIL PAGE ---
+        $isFavorited = false;
+        $user = auth_user(); // Get current user
+        
+        if ($user) {
+            // Check if the current user has favorited this specific product
+            $isFavorited = $this->favorites->checkFavorite($user['id'], $product['id']);
+        }
+        // --- END: ADD FAVORITE CHECK ---
+        
+        // Pass both the product and the favorite status to the view
+        $this->render('shop/detail', compact('product', 'photos', 'isFavorited'));
     }
 }
-
-
