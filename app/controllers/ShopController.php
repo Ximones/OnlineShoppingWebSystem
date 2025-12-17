@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductPhoto;
 use App\Models\Favorite;
 
 class ShopController extends Controller
@@ -70,7 +71,7 @@ class ShopController extends Controller
     {
         $minPriceRaw = get('min_price');
         $maxPriceRaw = get('max_price');
-        
+
         $filters = [
             'keyword' => get('keyword', ''),
             'category_id' => get('category_id', ''),
@@ -100,11 +101,15 @@ class ShopController extends Controller
     {
         $id = (int) get('id');
         $product = $this->products->find($id);
-        
+
         if (!$product) {
             flash('danger', 'Product not found.');
             redirect('?module=shop&action=catalog');
         }
+
+        $productPhotos = new ProductPhoto();
+        $photos = $productPhotos->getByProductId($id);
+
         
         // --- START: ADD FAVORITE CHECK FOR DETAIL PAGE ---
         $isFavorited = false;
@@ -117,8 +122,6 @@ class ShopController extends Controller
         // --- END: ADD FAVORITE CHECK ---
         
         // Pass both the product and the favorite status to the view
-        $this->render('shop/detail', compact('product', 'isFavorited'));
+        $this->render('shop/detail', compact('product', 'photos', 'isFavorited'));
     }
 }
-
-

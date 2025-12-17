@@ -38,13 +38,73 @@
             <option value="inactive" <?= ($product['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
         </select>
 
-        <label for="photo">Photo</label>
-        <input type="file" name="photo" accept="image/*">
-        <?php if (!empty($product['photo'])): ?>
-            <img src="<?= encode($product['photo']); ?>" alt="<?= encode($product['name']); ?>" class="thumb">
+        <label for="photos">Photos</label>
+        <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
+        <div class="photo-note">
+            <small>You can select multiple photos at once. First selected will be primary.</small>
+        </div>
+
+        <?php if (!empty($photos)): ?>
+            <div class="photos-grid">
+                <h4>Current Photos: (Click to set as primary)</h4>
+                <?php foreach ($photos as $photo): ?>
+                    <div class="photo-item <?= $photo['is_primary'] ? 'primary' : ''; ?>">
+                        <div class="photo-wrapper">
+                            <img src="<?= encode($photo['photo_path']); ?>" alt="Product photo" class="thumb">
+                            <?php if ($photo['is_primary']): ?>
+                                <span class="badge primary-badge">Primary</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="photo-actions">
+                            <button type="button" class="btn small btn-primary-action" onclick="setPrimaryPhoto(<?= $photo['id']; ?>, <?= $product['id']; ?>)">
+                                Set Primary
+                            </button>
+                            <button type="button" class="photosDanger btn-small" onclick="deletePhoto(<?= $photo['id']; ?>, <?= $product['id']; ?>)">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         <?php endif; ?>
 
-        <button class="btn primary"><?= isset($product) ? 'Update' : 'Create'; ?></button>
+        <button type="submit" class="btn primary mt-3"><?= isset($product) ? 'Update' : 'Create'; ?></button>
     </form>
 </section>
 
+<form id="deletePhotoForm" method="post" action="?module=admin&resource=products&action=deletePhoto" style="display:none;">
+    <input type="hidden" name="photo_id" id="deletePhotoId">
+    <input type="hidden" name="product_id" id="deleteProductId">
+</form>
+
+<form id="setPrimaryPhotoForm" method="post" action="?module=admin&resource=products&action=setPrimaryPhoto" style="display:none;">
+    <input type="hidden" name="photo_id" id="setPrimaryPhotoId">
+    <input type="hidden" name="product_id" id="setPrimaryProductId">
+</form>
+
+<script>
+    function deletePhoto(photoId, productId) {
+        if (confirm('Delete this photo?')) {
+            document.getElementById('deletePhotoId').value = photoId;
+            document.getElementById('deleteProductId').value = productId;
+            document.getElementById('deletePhotoForm').submit();
+        }
+    }
+
+    function setPrimaryPhoto(photoId, productId) {
+        document.getElementById('setPrimaryPhotoId').value = photoId;
+        document.getElementById('setPrimaryProductId').value = productId;
+        document.getElementById('setPrimaryPhotoForm').submit();
+    }
+
+    document.getElementById('photoInput')?.addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (files.length > 0) {
+            let fileList = 'Selected ' + files.length + ' file(s):\n';
+            for (let i = 0; i < files.length; i++) {
+                fileList += (i + 1) + '. ' + files[i].name + '\n';
+            }
+            console.log(fileList);
+        }
+    });
+</script>

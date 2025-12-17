@@ -1,4 +1,11 @@
-<?php $title = 'Product Catalog'; ?>
+<?php
+$title = 'Product Catalog';
+
+use App\Models\ProductPhoto;
+
+$productPhotoModel = new ProductPhoto();
+?>
+
 <section class="panel">
     <form method="get" class="search-panel">
         <input type="hidden" name="module" value="shop">
@@ -19,33 +26,37 @@
             </select>
         </div>
 
-<div class="price-range-line">
-    
-    <div class="price-input-wrapper">
-        <span class="currency-prefix">RM</span>
-        <input type="number" name="min_price" placeholder="Min" 
-               value="<?= encode($filters['min_price'] ?? ''); ?>" min="0">
-    </div>
-    
-    <span class="price-separator">-</span> 
-    
-    <div class="price-input-wrapper">
-        <span class="currency-prefix">RM</span>
-        <input type="number" name="max_price" placeholder="Max" 
-               value="<?= encode($filters['max_price'] ?? ''); ?>" min="0">
-    </div>
-    
-</div>
-        
+        <div class="price-range-line">
+
+            <div class="price-input-wrapper">
+                <span class="currency-prefix">RM</span>
+                <input type="number" name="min_price" placeholder="Min"
+                    value="<?= encode($filters['min_price'] ?? ''); ?>" min="0">
+            </div>
+
+            <span class="price-separator">-</span>
+
+            <div class="price-input-wrapper">
+                <span class="currency-prefix">RM</span>
+                <input type="number" name="max_price" placeholder="Max"
+                    value="<?= encode($filters['max_price'] ?? ''); ?>" min="0">
+            </div>
+
+        </div>
+
         <button class="btn primary search-btn full-width-button">Search</button>
-            
+
     </form>
 </section>
 
 <section class="grid">
     <?php foreach ($products as $product): ?>
+        <?php
+        $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
+        $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/400x250';
+        ?>
         <article class="card product-card">
-            <img src="<?= encode($product['photo'] ?? 'https://placehold.co/400x250'); ?>" alt="<?= encode($product['name']); ?>">
+            <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>">
             <h3><?= encode($product['name']); ?></h3>
             <p><?= encode(substr($product['description'], 0, 100)); ?>...</p>
             <p class="price">RM <?= number_format($product['price'], 2); ?></p>
@@ -68,4 +79,3 @@
         </article>
     <?php endforeach; ?>
 </section>
-

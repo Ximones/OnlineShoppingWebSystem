@@ -61,7 +61,7 @@ class Product
 
     public function create(array $data): int
     {
-        $stm = $this->db->prepare('INSERT INTO products (category_id, sku, name, description, price, stock, photo, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        $stm = $this->db->prepare('INSERT INTO products (category_id, sku, name, description, price, stock, status) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $stm->execute([
             $data['category_id'],
             $data['sku'],
@@ -69,7 +69,6 @@ class Product
             $data['description'],
             $data['price'],
             $data['stock'],
-            $data['photo'],
             $data['status'] ?? 'active',
         ]);
         return (int) $this->db->lastInsertId();
@@ -77,7 +76,7 @@ class Product
 
     public function update(int $id, array $data): void
     {
-        $stm = $this->db->prepare('UPDATE products SET category_id = ?, sku = ?, name = ?, description = ?, price = ?, stock = ?, photo = ?, status = ?, updated_at = NOW() WHERE id = ?');
+        $stm = $this->db->prepare('UPDATE products SET category_id = ?, sku = ?, name = ?, description = ?, price = ?, stock = ?, status = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([
             $data['category_id'],
             $data['sku'],
@@ -85,7 +84,6 @@ class Product
             $data['description'],
             $data['price'],
             $data['stock'],
-            $data['photo'],
             $data['status'],
             $id,
         ]);
@@ -97,5 +95,3 @@ class Product
         $stm->execute([$id]);
     }
 }
-
-

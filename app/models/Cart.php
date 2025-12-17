@@ -30,9 +30,17 @@ class Cart
 
     public function items(int $cartId): array
     {
-        $sql = 'SELECT ci.*, p.name, p.photo, p.price FROM cart_items ci
-                INNER JOIN products p ON p.id = ci.product_id
-                WHERE ci.cart_id = ?';
+        $sql = 'SELECT 
+                ci.*, 
+                p.name, 
+                p.price, 
+                pp.photo_path AS photo
+            FROM cart_items ci
+            INNER JOIN products p ON p.id = ci.product_id
+            LEFT JOIN product_photos pp 
+                ON pp.product_id = p.id AND pp.is_primary = 1
+            WHERE ci.cart_id = ?';
+
         $stm = $this->db->prepare($sql);
         $stm->execute([$cartId]);
         return $stm->fetchAll();
@@ -70,5 +78,3 @@ class Cart
         $stm->execute([$cartId]);
     }
 }
-
-
