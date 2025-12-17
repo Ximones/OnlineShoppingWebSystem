@@ -4,7 +4,6 @@ $title = $product['name'];
 
 <section class="product-detail">
 
-    <!-- ===== SHOPEE STYLE PHOTO VIEW ===== -->
     <div class="product-photo-view">
 
         <?php if (!empty($photos)): ?>
@@ -42,8 +41,7 @@ $title = $product['name'];
         <?php endif; ?>
 
     </div>
-
-    <!-- ===== PRODUCT INFO (UNCHANGED) ===== -->
+    
     <div class="product-detail__info">
         <h1><?= encode($product['name']); ?></h1>
         
