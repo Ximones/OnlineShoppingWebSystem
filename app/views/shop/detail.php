@@ -1,14 +1,8 @@
-<?php
-$title = $product['name'];
-?>
+<?php $title = $product['name']; ?>
 
 <section class="product-detail">
-
     <div class="product-photo-view">
-
         <?php if (!empty($photos)): ?>
-
-            <!-- Main Photo -->
             <div class="product-photo-view__main">
                 <img
                     id="productMainPhoto"
@@ -17,7 +11,6 @@ $title = $product['name'];
                 >
             </div>
 
-            <!-- Thumbnails -->
             <?php if (count($photos) > 1): ?>
                 <div class="product-photo-view__thumbs">
                     <?php foreach ($photos as $index => $photo): ?>
@@ -30,16 +23,9 @@ $title = $product['name'];
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
-
         <?php else: ?>
-
-            <img
-                src="https://placehold.co/500x400"
-                alt="<?= encode($product['name']); ?>"
-            >
-
+            <img src="<?= encode($product['photo'] ?? 'https://placehold.co/500x400'); ?>" alt="<?= encode($product['name']); ?>">
         <?php endif; ?>
-
     </div>
     
     <div class="product-detail__info">
@@ -50,37 +36,41 @@ $title = $product['name'];
             $iconType = $isFavorited ? 'fas' : 'far';
             $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
         ?>
+        
         <p class="price-line">
             <span class="price">RM <?= number_format($product['price'], 2); ?></span>
-            <span 
-                class="favorite-toggle" 
-                data-product-id="<?= $product['id']; ?>" 
-                data-is-favorited="<?= $isFavorited ? 'true' : 'false' ?>"
-            >
-                <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
-            </span>
         </p>
+        
         <p><?= nl2br(encode($product['description'])); ?></p>
-        <p class="price">RM <?= number_format($product['price'], 2); ?></p>
-
-        <form method="post" action="?module=cart&action=add">
+        
+        <form method="post" action="?module=cart&action=add" class="add-to-cart-form">
             <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-            <label>Quantity</label>
-            <input type="number" name="quantity" min="1" value="1">
-            <button class="detailBtn btn primary">Add to Cart</button>
+            
+            <div class="quantity-wrapper"> 
+                <label for="quantity-input">Quantity</label>
+                <input type="number" id="quantity-input" name="quantity" min="1" value="1" class="quantity-input-field">
+            </div>
+            
+            <div class="action-buttons-wrapper action-buttons-full-width"> 
+                <button type="submit" class="btn primary add-to-cart-btn">Add to Cart</button>
+                
+                <div 
+                    class="btn secondary favorite-toggle-btn favorite-toggle" 
+                    data-product-id="<?= $product['id']; ?>"
+                    data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>"
+                >
+                    <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
+                    <span class="favorite-text">Add to Favorite</span>
+                </div>
+            </div>
         </form>
     </div>
-
 </section>
 
 <script>
 function changeMainPhoto(thumb) {
     document.getElementById('productMainPhoto').src = thumb.src;
-
-    document
-        .querySelectorAll('.product-photo-view__thumb')
-        .forEach(t => t.classList.remove('is-active'));
-
+    document.querySelectorAll('.product-photo-view__thumb').forEach(t => t.classList.remove('is-active'));
     thumb.classList.add('is-active');
 }
 </script>

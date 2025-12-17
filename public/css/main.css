@@ -1236,30 +1236,74 @@ main.container {
     z-index: 5; 
     cursor: pointer;
     font-size: 1.5rem; 
-    transition: transform 0.2s ease, color 0.2s ease;  
+    transition: transform 0.2s ease, color 0.2s ease; 
+    display: block; 
+    user-select: none; 
+    caret-color: transparent;
+    outline: none; 
 }
 
 .favorite-toggle:hover {
     transform: scale(1.1);
 }
 
-/* --- Add a new container style for the card footer in main.css --- */
-.product-card-footer {
-    display: flex; /* Makes elements side-by-side */
-    justify-content: space-between; /* Spreads out the elements */
-    align-items: center; 
-    margin-top: 0.5rem; /* Add some space above the footer */
+
+/* --Reset positioning and style for the heart icon when it's the ADD TO FAVORITE button on the PRODUCT DETAIL page-- */
+.product-detail .favorite-toggle {
+    position: static; 
+    top: initial; 
+    align-items: center;
+    font-size: 0.95rem; 
+    transform: none; 
 }
 
-/* --- Modify favorite-toggle for the catalog card view --- */
-.product-card .favorite-toggle {
-    position: static; /* remove absolute positioning for catalog view */
+
+.product-detail .favorite-toggle:hover {
+    transform: none;
+}
+
+.product-card-footer {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-top: 0.5rem; 
+}
+
+.product-card-footer .favorite-toggle {
+    position: static; 
     font-size: 1.3rem;
     cursor: pointer;
     transition: transform 0.2s ease, color 0.2s ease;
+    display: inline-block; 
+}
+
+.product-detail .action-buttons-wrapper {
+    display: flex; 
+    gap: 10px; 
+}
+
+.product-detail .action-buttons-wrapper .btn {
+    flex-grow: 1;
+    text-align: center; 
+}
+
+.product-detail .action-buttons-wrapper .favorite-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-detail .action-buttons-wrapper .favorite-toggle i {
+    margin-right: 5px; /
 }
 
 /* --- Cart & checkout surfaces --- */
+.action-buttons-wrapper {
+    display: flex;         
+    gap: 15px;            
+    margin-top: 20px;     
+    width: 100%;          
+}
 
 .cart-summary-panel {
     margin-top: var(--space-md);
