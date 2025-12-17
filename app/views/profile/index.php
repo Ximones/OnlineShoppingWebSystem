@@ -1,21 +1,5 @@
 <?php
 $title = 'My Profile';
-$checkInPoints = $checkInPoints ?? [
-    1 => 1,
-    2 => 5,
-    3 => 10,
-    4 => 15,
-    5 => 20,
-    6 => 25,
-    7 => 100,
-];
-$streak = max(0, (int) ($user['check_in_streak'] ?? 0));
-$lastCheckInAt = $user['last_check_in_at'] ?? null;
-$today = new DateTimeImmutable('today');
-$lastCheckInDate = $lastCheckInAt ? (new DateTimeImmutable($lastCheckInAt))->setTime(0, 0) : null;
-$checkedInToday = $lastCheckInDate && $lastCheckInDate->format('Y-m-d') === $today->format('Y-m-d');
-$nextStreakForReward = $streak ? min(7, $streak + 1) : 1;
-$currentReward = $checkInPoints[$nextStreakForReward];
 ?>
 <section class="panel" style="max-width: 1200px; margin: 0 auto;">
     <div class="profile-layout">
@@ -69,67 +53,6 @@ $currentReward = $checkInPoints[$nextStreakForReward];
                     </div>
                 </div>
 
-                <!-- Daily Check-In Section -->
-                <div style="padding: 1.25rem; background: #fff; border: 1px solid #e0e7f1; border-radius: 8px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 1.25rem; color: #0e3d73;">Daily Check-In</h3>
-                            <p style="margin: 0.25rem 0 0; color: #315c99; font-size: 0.9rem;">Check in once every day to climb the streak ladder.</p>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 0.85rem; color: #315c99;">Current streak</div>
-                            <div style="font-size: 1.5rem; font-weight: 600; color: #0e3d73;"><?= $streak; ?> day<?= $streak === 1 ? '' : 's'; ?></div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                        <?php if ($checkedInToday): ?>
-                            <span style="display: inline-flex; align-items: center; gap: 0.5rem; background: #e8f6ff; color: #0f6aa1; border-radius: 999px; padding: 0.5rem 0.9rem; font-weight: 600;">
-                                <svg width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7.777 12.031l-2.808-2.79-1.06 1.058L7.777 14.14l7.07-7.07-1.06-1.06-6.01 6.02z" fill="#0f6aa1"/>
-                                </svg>
-                                Checked in today
-                            </span>
-                            <div style="font-size: 0.9rem; color: #315c99;">
-                                Come back tomorrow for <?= $checkInPoints[$nextStreakForReward]; ?> pts.
-                            </div>
-                        <?php else: ?>
-                            <form method="post" action="?module=profile&action=check_in">
-                                <button type="submit" class="btn primary" style="padding: 0.6rem 1.5rem; font-weight: 600;">
-                                    Check in (+<?= $currentReward; ?> pts)
-                                </button>
-                            </form>
-                            <div style="font-size: 0.9rem; color: #315c99;">
-                                Don’t break the streak! Today’s check-in is worth <?= $currentReward; ?> pts.
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <div style="margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem;">
-                        <?php foreach ($checkInPoints as $day => $pointValue): 
-                            $isCompleted = $streak >= $day;
-                            $isToday = $checkedInToday && $streak === $day;
-                            $isUpcoming = !$checkedInToday && $nextStreakForReward === $day;
-                            $borderColor = $isToday ? '#0f6aa1' : ($isUpcoming ? '#0e3d73' : ($isCompleted ? '#1e88e5' : '#cfe0ff'));
-                            $bgColor = $isToday ? '#e8f6ff' : ($isUpcoming ? '#e1ebff' : '#f7faff');
-                            $textColor = $isCompleted ? '#0f6aa1' : '#315c99';
-                        ?>
-                            <div style="border: 1px solid <?= $borderColor; ?>; border-radius: 8px; padding: 0.6rem; background: <?= $bgColor; ?>; text-align: center;">
-                                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: <?= $textColor; ?>;">Day <?= $day; ?></div>
-                                <div style="font-size: 1.1rem; font-weight: 600; color: <?= $textColor; ?>;"><?= $pointValue; ?> pts</div>
-                                <?php if ($isToday): ?>
-                                    <div style="font-size: 0.75rem; color: #0f6aa1;">Today</div>
-                                <?php elseif ($isUpcoming): ?>
-                                    <div style="font-size: 0.75rem; color: #0e3d73;">Next up</div>
-                                <?php elseif ($isCompleted): ?>
-                                    <div style="font-size: 0.75rem; color: #0f6aa1;">Done</div>
-                                <?php else: ?>
-                                    <div style="font-size: 0.75rem; color: #6c8bc2;">Pending</div>
-                                <?php endif; ?>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
             </div>
 
         </div>
