@@ -17,7 +17,7 @@ class OrderController extends Controller
     public function history(): void
     {
         $this->requireAuth();
-        $orders = $this->orders->history(auth_id());
+        $orders = $this->orders->historyWithItems(auth_id());
         $this->render('orders/history', compact('orders'));
     }
 

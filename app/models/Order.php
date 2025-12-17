@@ -138,10 +138,29 @@ class Order
             return null;
         }
 
-        $stm = $this->db->prepare('SELECT oi.*, p.name FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?');
+        $stm = $this->db->prepare('SELECT oi.*, p.name, p.photo FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?');
         $stm->execute([$id]);
         $order['items'] = $stm->fetchAll();
         return $order;
+    }
+
+    public function historyWithItems(int $userId): array
+    {
+        $stm = $this->db->prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC');
+        $stm->execute([$userId]);
+        $orders = $stm->fetchAll();
+
+        foreach ($orders as &$order) {
+            $stm = $this->db->prepare('SELECT oi.*, p.name, p.photo FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ? LIMIT 3');
+            $stm->execute([$order['id']]);
+            $order['items'] = $stm->fetchAll();
+
+            $stm = $this->db->prepare('SELECT COUNT(*) FROM order_items WHERE order_id = ?');
+            $stm->execute([$order['id']]);
+            $order['total_items'] = (int) $stm->fetchColumn();
+        }
+
+        return $orders;
     }
 
     public function adminList(array $filters = []): array

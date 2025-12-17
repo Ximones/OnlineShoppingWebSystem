@@ -12,21 +12,24 @@ $title = $title ?? APP_NAME;
     <link rel="stylesheet" href="<?= asset('public/css/main.css'); ?>">
 </head>
 <body>
-<?php include __DIR__ . '/_header.php'; ?>
+<div class="page-wrapper">
+    <?php include __DIR__ . '/_header.php'; ?>
 
-<div id="toast-container">
-    <?php if (!empty($flashSuccess)): ?>
-        <div class="alert alert-success"><?= encode($flashSuccess); ?></div>
-    <?php endif; ?>
-    <?php if (!empty($flashDanger)): ?>
-        <div class="alert alert-danger"><?= encode($flashDanger); ?></div>
-    <?php endif; ?>
+    <div id="toast-container">
+        <?php if (!empty($flashSuccess)): ?>
+            <div class="alert alert-success"><?= encode($flashSuccess); ?></div>
+        <?php endif; ?>
+        <?php if (!empty($flashDanger)): ?>
+            <div class="alert alert-danger"><?= encode($flashDanger); ?></div>
+        <?php endif; ?>
+    </div>
+
+    <main class="container">
+        <?= $content ?? ''; ?>
+    </main>
+    
+    <?php include __DIR__ . '/_footer.php'; ?>
 </div>
-
-<main class="container">
-    <?= $content ?? ''; ?>
-</main>
-<?php include __DIR__ . '/_footer.php'; ?>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="<?= asset('public/js/app.js'); ?>"></script>
 </body>

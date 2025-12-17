@@ -59,6 +59,12 @@ body {
     text-rendering: optimizeLegibility;
 }
 
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 a {
     color: var(--color-accent);
     text-decoration: none;
@@ -70,7 +76,7 @@ a:hover {
 }
 
 .container {
-    max-width: var(--content-width);
+    width: 80%;
     margin: 0 auto;
     padding: var(--space-lg) var(--space-md);
 }
@@ -78,6 +84,7 @@ a:hover {
 main.container {
     padding-top: calc(var(--space-xl) * 1.4);
     padding-bottom: calc(var(--space-xl) * 1.4);
+    flex: 1;
 }
 
 /* --- Header & Navigation (Apple-like top nav) --- */
@@ -551,6 +558,185 @@ main.container {
     margin-top: var(--space-md);
 }
 
+/* --- Voucher cards (redesigned) --- */
+
+.vouchers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.voucher-card-new {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 60%, #ffffff 100%);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(210, 210, 215, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.voucher-card-new:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.voucher-card-owned {
+    background: linear-gradient(135deg, #f5f5f7 0%, #ffffff 60%, #f5f5f7 100%);
+}
+
+.voucher-card-owned.is-used {
+    opacity: 0.7;
+}
+
+.voucher-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.voucher-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0071e3, #0a84ff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.voucher-card-owned .voucher-card-icon {
+    background: linear-gradient(135deg, #8e8e93, #a1a1a6);
+}
+
+.voucher-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    flex: 1;
+}
+
+.voucher-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.voucher-card-code {
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    background: rgba(0, 113, 227, 0.08);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    text-align: center;
+    letter-spacing: 0.05em;
+}
+
+.voucher-card-description {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+}
+
+.voucher-card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.voucher-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(210, 210, 215, 0.4);
+}
+
+.voucher-detail-item:last-child {
+    border-bottom: none;
+}
+
+.voucher-detail-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.voucher-detail-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.voucher-card-footer {
+    margin-top: auto;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(210, 210, 215, 0.4);
+}
+
+.voucher-card-footer .btn {
+    width: 100%;
+    justify-content: center;
+}
+
+.voucher-card-status {
+    margin-top: 0.5rem;
+}
+
+.voucher-status-badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.voucher-status-available {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+}
+
+.voucher-status-used {
+    background: rgba(142, 142, 147, 0.15);
+    color: #8e8e93;
+}
+
+.voucher-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(210, 210, 215, 0.4);
+}
+
+.voucher-meta-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.voucher-meta-label {
+    color: var(--color-text-muted);
+}
+
+.voucher-meta-value {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
 /* --- Buttons (Apple-like chips & CTAs) --- */
 
 .btn {
@@ -588,6 +774,22 @@ main.container {
     color: #ffffff;
 }
 
+.btn.is-disabled {
+    background: #e5e5ea;
+    border-color: rgba(199, 199, 204, 0.8);
+    color: #8e8e93;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn.is-disabled:hover {
+    background: #e5e5ea;
+    border-color: rgba(199, 199, 204, 0.8);
+    color: #8e8e93;
+    box-shadow: none;
+    transform: none;
+}
 .btn.small {
     padding: 0.3rem 0.8rem;
     font-size: 0.82rem;
@@ -606,6 +808,287 @@ main.container {
     padding: 0.75rem 0.9rem;
     border-bottom: 1px solid var(--color-border-soft);
     text-align: left;
+}
+
+.cart-item-thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid rgba(210, 210, 215, 0.5);
+    flex-shrink: 0;
+}
+
+/* --- Order History Cards --- */
+
+.orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+.order-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 60%, #ffffff 100%);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(210, 210, 215, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+.order-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.order-card-info {
+    flex: 1;
+}
+
+.order-card-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin-bottom: 0.25rem;
+}
+
+.order-card-date {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.order-status-badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+}
+
+.order-status-pending {
+    background: rgba(255, 149, 0, 0.15);
+    color: #ff9500;
+}
+
+.order-status-paid {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+}
+
+.order-status-shipped {
+    background: rgba(0, 113, 227, 0.15);
+    color: #0071e3;
+}
+
+.order-status-delivered {
+    background: rgba(52, 199, 89, 0.15);
+    color: #34c759;
+}
+
+.order-status-cancelled {
+    background: rgba(255, 59, 48, 0.15);
+    color: #ff3b30;
+}
+
+.order-card-items {
+    flex: 1;
+}
+
+.order-items-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.order-item-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.order-item-thumbnail {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid rgba(210, 210, 215, 0.5);
+    flex-shrink: 0;
+}
+
+.order-item-placeholder {
+    background: rgba(245, 245, 247, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+}
+
+.order-item-name {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.order-item-qty {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.order-item-more {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding-left: 3.25rem;
+}
+
+.order-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(210, 210, 215, 0.4);
+}
+
+.order-card-total {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.order-total-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.order-total-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* --- Order Detail Page --- */
+
+.order-detail-header {
+    margin-bottom: 1rem;
+}
+
+.order-detail-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.order-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(245, 245, 247, 0.4);
+    border-radius: 14px;
+    border: 1px solid rgba(210, 210, 215, 0.4);
+}
+
+.order-detail-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid rgba(210, 210, 215, 0.5);
+    flex-shrink: 0;
+}
+
+.order-detail-item-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.order-detail-item-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.order-detail-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+
+.order-detail-item-total {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
+}
+
+.order-shipping-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.order-info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.order-info-label {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.order-info-value {
+    font-size: 0.95rem;
+    color: var(--color-text);
+}
+
+.order-total-panel {
+    background: linear-gradient(135deg, #f8fbff 0%, #ffffff 60%, #eef3ff 100%);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+}
+
+.order-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.order-total-value-large {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--color-accent);
+    letter-spacing: -0.02em;
 }
 
 .table th {

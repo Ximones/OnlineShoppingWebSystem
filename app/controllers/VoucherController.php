@@ -25,7 +25,24 @@ class VoucherController extends Controller
         $allVouchers = $this->vouchers->all(['active_only' => true]);
         $userVouchers = $this->userVouchers->allForUser($userId);
 
-        $this->render('vouchers/index', compact('allVouchers', 'userVouchers'));
+        // Map of voucher_id => user status (claimed/used/etc.) for current user
+        $claimedByUser = [];
+        foreach ($userVouchers as $uv) {
+            $claimedByUser[(int) $uv['voucher_id']] = strtolower($uv['status']);
+        }
+
+        // Map of voucher_id => total claim count (all users)
+        $claimCounts = [];
+        foreach ($this->userVouchers->countsByVoucher() as $row) {
+            $claimCounts[(int) $row['voucher_id']] = (int) $row['total_claims'];
+        }
+
+        $this->render('vouchers/index', [
+            'allVouchers'   => $allVouchers,
+            'userVouchers'  => $userVouchers,
+            'claimedByUser' => $claimedByUser,
+            'claimCounts'   => $claimCounts,
+        ]);
     }
 
     public function claim(): void
