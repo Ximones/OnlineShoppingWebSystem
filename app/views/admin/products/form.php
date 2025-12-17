@@ -41,7 +41,7 @@
         <label for="photos">Photos</label>
         <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
         <div class="photo-note">
-            <small>You can select multiple photos at once. First selected will be primary.</small>
+            <small>You can select multiple photos at once.</small>
         </div>
 
         <?php if (!empty($photos)): ?>
