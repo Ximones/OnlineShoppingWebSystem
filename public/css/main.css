@@ -750,7 +750,7 @@ main.container {
     justify-content: center;
     gap: 0.35rem;
     padding: 0.55rem 1.2rem;
-    border-radius: 999px;
+    border-radius: 999px !important; /* keep all primary buttons pill-shaped everywhere */
     border: 1px solid rgba(0, 113, 227, 0.25);
     cursor: pointer;
     font-size: 0.95rem;
