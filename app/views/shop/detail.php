@@ -5,7 +5,6 @@
         <h1><?= encode($product['name']); ?></h1>
         
         <?php 
-            // NOTE: $isFavorited must be set by the shop controller before rendering
             $isFavorited = $isFavorited ?? false; 
             $iconType = $isFavorited ? 'fas' : 'far';
             $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
