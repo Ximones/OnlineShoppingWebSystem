@@ -10,6 +10,7 @@
             <?php if (auth_user()): ?>
                 <a href="?module=cart&action=index">Cart</a>
                 <a href="?module=orders&action=history">Orders</a>
+                <a href="?module=game&action=points">Points</a>
                 <a href="?module=bills&action=index">PayLater</a>
                 <a href="?module=vouchers&action=index">Vouchers</a>
                 <a href="?module=favorites&action=index">Favorites</a>

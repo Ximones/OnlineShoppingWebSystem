@@ -106,22 +106,6 @@ class ProfileController extends Controller
         redirect('?module=profile&action=index');
     }
 
-    public function check_in(): void
-    {
-        $this->requireAuth();
-        $userId = auth_id();
-        $result = $this->users->recordDailyCheckIn($userId);
-
-        if ($result['status'] === 'already_checked_in') {
-            flash('danger', 'You have already checked in today.');
-        } elseif ($result['status'] === 'checked_in') {
-            flash('success', "Checked in! You earned {$result['points']} points. Streak: {$result['streak']} days.");
-        } else {
-            flash('danger', 'Unable to check in. Please try again.');
-        }
-
-        redirect('?module=profile&action=index');
-    }
 }
 
 

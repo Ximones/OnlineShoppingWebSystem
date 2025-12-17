@@ -134,6 +134,55 @@ class User
         $this->updateRewardTier($id);
     }
 
+    public function getRewardPoints(int $id): float
+    {
+        $stm = $this->db->prepare('SELECT reward_points FROM users WHERE id = ?');
+        $stm->execute([$id]);
+        $balance = $stm->fetchColumn();
+        return $balance !== false ? (float) $balance : 0.0;
+    }
+
+    /**
+     * Atomically spend reward points for a user.
+     *
+     * @return array{success:bool,reason:string,balance:float}
+     */
+    public function spendRewardPoints(int $id, float $points): array
+    {
+        $points = max(0.0, $points);
+        if ($points <= 0.0) {
+            return ['success' => true, 'reason' => 'no_cost', 'balance' => $this->getRewardPoints($id)];
+        }
+
+        $this->db->beginTransaction();
+
+        $stm = $this->db->prepare('SELECT reward_points FROM users WHERE id = ? FOR UPDATE');
+        $stm->execute([$id]);
+        $current = $stm->fetchColumn();
+
+        if ($current === false) {
+            $this->db->rollBack();
+            return ['success' => false, 'reason' => 'not_found', 'balance' => 0.0];
+        }
+
+        $currentBalance = (float) $current;
+        if ($currentBalance < $points) {
+            $this->db->rollBack();
+            return ['success' => false, 'reason' => 'insufficient', 'balance' => $currentBalance];
+        }
+
+        $newBalance = $currentBalance - $points;
+
+        $stm = $this->db->prepare('UPDATE users SET reward_points = ?, updated_at = NOW() WHERE id = ?');
+        $stm->execute([$newBalance, $id]);
+
+        $this->db->commit();
+
+        $this->updateRewardTier($id);
+
+        return ['success' => true, 'reason' => 'ok', 'balance' => $newBalance];
+    }
+
     public function updateRewardTier(int $id): void
     {
         $user = $this->find($id);

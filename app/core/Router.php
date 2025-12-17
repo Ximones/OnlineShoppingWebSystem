@@ -5,6 +5,7 @@ class Router {
         'shop' => 'ShopController',
         'auth' => 'AuthController',
         'profile' => 'ProfileController',
+        'game' => 'GameController',
         'admin.members' => 'AdminMemberController',
         'admin.products' => 'AdminProductController',
         'admin.vouchers' => 'AdminVoucherController',
