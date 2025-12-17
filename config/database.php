@@ -5,11 +5,11 @@
  * Keep the credentials here while the schema and seed data live inside /database.
  */
 $_db_config = [
-    'host' => '127.0.0.1',
-    'port' => 3306,
-    'name' => 'tbos',
-    'user' => 'root',
-    'pass' => '',
+    'host' => $_ENV['DB_HOST'] ?? '127.0.0.1',
+    'port' => $_ENV['DB_PORT'] ?? 3306,
+    'name' => $_ENV['DB_DATABASE'] ?? 'tbos',
+    'user' => $_ENV['DB_USERNAME'] ?? 'root',
+    'pass' => $_ENV['DB_PASSWORD'] ?? '',
     'charset' => 'utf8mb4',
 ];
 
