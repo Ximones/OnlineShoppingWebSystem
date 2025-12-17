@@ -5,16 +5,19 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\User;
 
 class BillController extends Controller
 {
     private Payment $payments;
     private Order $orders;
+    private User $users;
 
     public function __construct()
     {
         $this->payments = new Payment();
         $this->orders = new Order();
+        $this->users = new User();
     }
 
     public function index(): void
@@ -23,7 +26,11 @@ class BillController extends Controller
         $userId = auth_id();
         $bills = $this->payments->pendingPayLaterForUser($userId);
         $history = $this->payments->completedPayLaterForUser($userId);
-        $originalLimit = 10000.0;
+        
+        // Get user's credit limit from database
+        $user = $this->users->find($userId);
+        $originalLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
+        
         $usedPrincipal = $this->payments->outstandingPayLaterPrincipal($userId);
         $availableLimit = max(0.0, $originalLimit - $usedPrincipal);
 

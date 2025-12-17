@@ -207,8 +207,8 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
                     <?php if ($value === 'PayLater'): ?>
                         <?php
                         $principal = (float) ($pricingSummary['payable_total'] ?? 0);
-                        $limit = 10000.0;
-                        $availableLimit = max(0.0, $limit - (float) $outstandingPayLater);
+                        $creditLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
+                        $availableLimit = max(0.0, $creditLimit - (float) $outstandingPayLater);
                         ?>
                         <span class="payment-note">
                             Pay later via Bills • Available limit RM <?= number_format($availableLimit, 2); ?>
@@ -230,8 +230,8 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
             if (!isset($tenureOptions[$currentTenure])) {
                 $currentTenure = 3;
             }
-            $limit = 10000.0;
-            $availableLimit = max(0.0, $limit - (float) $outstandingPayLater);
+            $creditLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
+            $availableLimit = max(0.0, $creditLimit - (float) $outstandingPayLater);
             ?>
             <div style="margin-top: 0.75rem;">
                 <div style="font-size: 0.9rem; margin-bottom: 0.25rem;">Choose tenure</div>

@@ -22,6 +22,7 @@ CREATE TABLE users (
     reward_tier VARCHAR(20) NOT NULL DEFAULT 'bronze',
     check_in_streak INT NOT NULL DEFAULT 0,
     last_check_in_at DATETIME NULL,
+    paylater_credit_limit DECIMAL(10,2) NOT NULL DEFAULT 10000.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -88,6 +89,9 @@ CREATE TABLE orders (
     shipping_name VARCHAR(100),
     shipping_phone VARCHAR(30),
     shipping_address TEXT,
+    shipping_method VARCHAR(50) NULL,
+    points_discount DECIMAL(10,2) NOT NULL DEFAULT 0,
+    voucher_discount DECIMAL(10,2) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),

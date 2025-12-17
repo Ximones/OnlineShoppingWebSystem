@@ -50,8 +50,10 @@ class Payment
         $sql = 'SELECT p.*, o.user_id, o.status AS order_status
                 FROM payments p
                 INNER JOIN orders o ON o.id = p.order_id
-                WHERE o.user_id = ? AND p.payment_method = "PayLater" AND p.status = "pending"
-                ORDER BY p.payment_date DESC';
+                WHERE o.user_id = ? AND p.payment_method = "PayLater" 
+                AND p.status = "pending" 
+                AND (p.billing_due_date IS NULL OR p.billing_due_date >= CURDATE())
+                ORDER BY p.billing_due_date ASC, p.payment_date DESC';
         $stm = $this->db->prepare($sql);
         $stm->execute([$userId]);
         return $stm->fetchAll();
@@ -62,7 +64,9 @@ class Payment
         $sql = 'SELECT SUM(p.principal_amount)
                 FROM payments p
                 INNER JOIN orders o ON o.id = p.order_id
-                WHERE o.user_id = ? AND p.payment_method = "PayLater" AND p.status = "pending"';
+                WHERE o.user_id = ? AND p.payment_method = "PayLater" 
+                AND p.status = "pending" 
+                AND (p.billing_due_date IS NULL OR p.billing_due_date >= CURDATE())';
         $stm = $this->db->prepare($sql);
         $stm->execute([$userId]);
         return (float) $stm->fetchColumn();
@@ -84,10 +88,20 @@ class Payment
         $sql = 'SELECT p.*, o.user_id, o.status AS order_status
                 FROM payments p
                 INNER JOIN orders o ON o.id = p.order_id
-                WHERE o.user_id = ? AND p.payment_method = "PayLater" AND p.status = "completed"
+                WHERE o.user_id = ? AND p.payment_method = "PayLater" 
+                AND p.status = "completed" 
+                AND p.billing_due_date IS NOT NULL 
+                AND p.billing_due_date < CURDATE()
                 ORDER BY p.payment_date DESC';
         $stm = $this->db->prepare($sql);
         $stm->execute([$userId]);
+        return $stm->fetchAll();
+    }
+
+    public function findByOrderId(int $orderId): array
+    {
+        $stm = $this->db->prepare('SELECT * FROM payments WHERE order_id = ? ORDER BY payment_date ASC');
+        $stm->execute([$orderId]);
         return $stm->fetchAll();
     }
 }

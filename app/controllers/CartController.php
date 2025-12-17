@@ -14,7 +14,6 @@ use App\Models\UserVoucher;
 class CartController extends Controller
 {
     private const CHECKOUT_SESSION_KEY = 'checkout_context';
-    private const PAYLATER_CREDIT_LIMIT = 10000.0;
 
     private Cart $cart;
     private Product $products;
@@ -172,7 +171,9 @@ class CartController extends Controller
                 $paylaterTenure = 3;
             }
 
-            $orderStatus = $paymentMethod === 'PayLater' ? 'pending_payment' : 'pending';
+            // PayLater payments are marked as 'completed' immediately, so order is 'paid'
+            // Other payment methods are also 'paid' since payment is completed immediately
+            $orderStatus = 'paid';
 
             // Compute PayLater charges and enforce credit limit
             $amount = (float) $pricingSummary['payable_total'];
@@ -188,12 +189,16 @@ class CartController extends Controller
                 }
                 $paylaterTotal = round($amount * (1 + $interestRate), 2);
 
+                // Get user's credit limit from database
+                $user = $this->users->find($userId);
+                $creditLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
+
                 // Use credit limit only on principal (amount), not interest
                 $outstandingPrincipal = $this->payments->outstandingPayLaterPrincipal($userId);
-                $availablePrincipal = max(0.0, self::PAYLATER_CREDIT_LIMIT - $outstandingPrincipal);
+                $availablePrincipal = max(0.0, $creditLimit - $outstandingPrincipal);
                 $principalUsed = min($amount, $availablePrincipal);
                 if ($principalUsed <= 0) {
-                    flash('danger', 'Your PayLater credit limit of RM ' . number_format(self::PAYLATER_CREDIT_LIMIT, 2) . ' is fully used. Please pay existing bills first.');
+                    flash('danger', 'Your PayLater credit limit of RM ' . number_format($creditLimit, 2) . ' is fully used. Please pay existing bills first.');
                     redirect('?module=cart&action=checkout');
                 }
 
@@ -218,11 +223,18 @@ class CartController extends Controller
             ], [
                 'item_ids' => array_column($items, 'id'),
                 'points_redeemed' => $pricingSummary['points_redeemed'],
+                'points_discount' => $pricingSummary['points_discount'],
                 'shipping_fee' => $pricingSummary['shipping_fee'],
+                'shipping_method' => $shippingMethod,
                 'voucher_discount' => $pricingSummary['voucher_discount'],
                 'voucher_code' => $pricingSummary['voucher_code'],
                 'order_status' => $orderStatus,
             ]);
+
+            // Mark voucher as used if one was applied
+            if ($selectedVoucher && !empty($pricingSummary['voucher_code'])) {
+                $this->userVouchers->markUsed($selectedVoucher['id'], $orderId);
+            }
 
             // Record payment(s)
             if ($amount > 0) {
@@ -239,7 +251,7 @@ class CartController extends Controller
                             'PayLater',
                             $instAmount,
                             $instPrincipal,
-                            'pending',
+                            'pending', // PayLater instalments are pending until user pays them
                             null,
                             $paylaterTenure,
                             $interestRate * 100,
@@ -315,6 +327,14 @@ class CartController extends Controller
     public function prepare_checkout(): void
     {
         $this->requireAuth();
+        
+        // First, update cart quantities if provided
+        if (post('items')) {
+            foreach (post('items', []) as $itemId => $quantity) {
+                $this->cart->updateItem((int) $itemId, max(1, (int) $quantity));
+            }
+        }
+        
         $selected = array_filter(array_map('intval', post('selected_items', [])));
         if (empty($selected)) {
             flash('danger', 'Select at least one item to proceed.');
@@ -400,7 +420,8 @@ class CartController extends Controller
             'points_redeemed' => $pointsRedeemed,
             'points_discount' => $pointsDiscount,
             'voucher_code' => $appliedVoucher,
-            'voucher_discount' => $totalVoucherDiscount,
+            'voucher_discount' => $voucherDiscountMerch, // Only merchandise discount, not shipping
+            'voucher_shipping_discount' => $shippingDiscount, // Separate shipping discount
             'shipping_method' => $shippingMethod,
             'shipping_fee' => $effectiveShippingFee,
             'payable_total' => $payable,

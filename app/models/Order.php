@@ -44,13 +44,24 @@ class Order
 
             $shippingFee = max(0.0, (float)($options['shipping_fee'] ?? 0));
             $voucherDiscount = max(0.0, (float)($options['voucher_discount'] ?? 0));
+            $pointsDiscount = $discount; // This is the points discount calculated above
 
             $baseTotal = max(0, $total - $discount - $voucherDiscount);
             $payableTotal = $baseTotal + $shippingFee;
 
             $orderStatus = $options['order_status'] ?? 'pending';
 
-            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            $shippingMethod = $options['shipping_method'] ?? 'standard';
+            
+            // Map shipping method key to label
+            $shippingMethodLabels = [
+                'standard' => 'Standard Shipping (3-5 days)',
+                'express' => 'Express Shipping (1-2 days)',
+                'pickup' => 'Self Pickup (Free)',
+            ];
+            $shippingMethodLabel = $shippingMethodLabels[$shippingMethod] ?? 'Standard Shipping (3-5 days)';
+            
+            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address, shipping_method, points_discount, voucher_discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stm->execute([
                 $userId,
                 $cartId,
@@ -59,6 +70,9 @@ class Order
                 $shipping['name'],
                 $shipping['phone'],
                 $shipping['address'],
+                $shippingMethodLabel,
+                $pointsDiscount,
+                $voucherDiscount,
             ]);
             $orderId = (int) $pdo->lastInsertId();
 
@@ -141,6 +155,75 @@ class Order
         $stm = $this->db->prepare('SELECT oi.*, p.name, p.photo FROM order_items oi INNER JOIN products p ON p.id = oi.product_id WHERE oi.order_id = ?');
         $stm->execute([$id]);
         $order['items'] = $stm->fetchAll();
+
+        // Get voucher used for this order
+        $stm = $this->db->prepare('SELECT uv.*, v.code, v.name, v.type, v.value, v.max_discount FROM user_vouchers uv INNER JOIN vouchers v ON v.id = uv.voucher_id WHERE uv.order_id = ? LIMIT 1');
+        $stm->execute([$id]);
+        $order['voucher'] = $stm->fetch() ?: null;
+
+        // Get payments for this order
+        $paymentModel = new \App\Models\Payment();
+        $order['payments'] = $paymentModel->findByOrderId($id);
+
+        // Calculate subtotal from items
+        $order['subtotal'] = array_reduce($order['items'], function ($carry, $item) {
+            return $carry + ($item['unit_price'] * $item['quantity']);
+        }, 0.0);
+
+        // Get stored values from database (if available)
+        $order['points_discount'] = (float)($order['points_discount'] ?? 0);
+        $order['voucher_discount'] = (float)($order['voucher_discount'] ?? 0);
+        $order['shipping_method'] = $order['shipping_method'] ?? 'Standard Shipping (3-5 days)';
+        
+        // Calculate shipping voucher discount if voucher was used
+        $order['shipping_voucher_discount'] = 0.0;
+        
+        if ($order['voucher']) {
+            $voucher = $order['voucher'];
+            
+            // If voucher discount wasn't stored (for old orders), calculate it
+            if ($order['voucher_discount'] == 0 && ($voucher['type'] === 'amount' || $voucher['type'] === 'percent')) {
+                $subtotal = $order['subtotal'];
+                
+                if ($voucher['type'] === 'amount') {
+                    $order['voucher_discount'] = min((float)$voucher['value'], $subtotal);
+                } elseif ($voucher['type'] === 'percent') {
+                    $discount = $subtotal * ((float)$voucher['value'] / 100);
+                    if ($voucher['max_discount']) {
+                        $discount = min($discount, (float)$voucher['max_discount']);
+                    }
+                    $order['voucher_discount'] = $discount;
+                }
+            }
+            
+            // Check for shipping vouchers
+            if ($voucher['type'] === 'shipping_amount') {
+                $order['shipping_voucher_discount'] = (float)$voucher['value'];
+            } elseif ($voucher['type'] === 'free_shipping') {
+                $order['shipping_voucher_discount'] = 999999; // Will be capped by actual shipping fee
+            }
+        } elseif ($order['voucher_discount'] > 0) {
+            // Voucher was used but record not found - discount is still stored, so show it
+            // This handles cases where voucher record might be missing
+        }
+
+        // Calculate shipping fee from stored values
+        // Formula: total = subtotal - voucher_discount - points_discount + shipping_fee - shipping_voucher_discount
+        // So: shipping_fee = total - subtotal + voucher_discount + points_discount + shipping_voucher_discount
+        $subtotal = $order['subtotal'];
+        $total = $order['total_amount'];
+        
+        $order['shipping_fee'] = max(0, $total - $subtotal + $order['voucher_discount'] + $order['points_discount']);
+        
+        // Apply shipping voucher discount if applicable
+        if ($order['shipping_voucher_discount'] > 0) {
+            if ($order['voucher']['type'] === 'free_shipping') {
+                $order['shipping_fee'] = 0;
+            } else {
+                $order['shipping_fee'] = max(0, $order['shipping_fee'] - $order['shipping_voucher_discount']);
+            }
+        }
+
         return $order;
     }
 

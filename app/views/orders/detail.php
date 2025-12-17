@@ -62,10 +62,141 @@
     </div>
 </section>
 
-<section class="panel order-total-panel">
-    <div class="order-total-row">
-        <span class="order-total-label">Order Total</span>
-        <span class="order-total-value-large">RM <?= number_format($order['total_amount'], 2); ?></span>
+<section class="panel">
+    <h2 style="margin-top: 0;">Order Summary</h2>
+    <div class="order-summary-breakdown">
+        <div class="order-summary-row">
+            <span class="order-summary-label">Subtotal</span>
+            <span class="order-summary-value">RM <?= number_format($order['subtotal'] ?? 0, 2); ?></span>
+        </div>
+        
+        <?php 
+        // Calculate total discounts to show
+        $totalDiscounts = ($order['voucher_discount'] ?? 0) + ($order['points_discount'] ?? 0);
+        $subtotalAfterDiscounts = ($order['subtotal'] ?? 0) - $totalDiscounts;
+        ?>
+        
+        <?php if (($order['voucher_discount'] ?? 0) > 0): ?>
+            <div class="order-summary-row order-summary-discount">
+                <span class="order-summary-label">
+                    Voucher Discount
+                    <?php if (!empty($order['voucher'])): ?>
+                        <span class="order-voucher-code">(<?= encode($order['voucher']['code']); ?>)</span>
+                    <?php endif; ?>
+                </span>
+                <span class="order-summary-value">- RM <?= number_format($order['voucher_discount'], 2); ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (($order['points_discount'] ?? 0) > 0): ?>
+            <div class="order-summary-row order-summary-discount">
+                <span class="order-summary-label">Reward Points Discount</span>
+                <span class="order-summary-value">- RM <?= number_format($order['points_discount'], 2); ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($order['voucher']) && ($order['voucher']['type'] === 'shipping_amount' || $order['voucher']['type'] === 'free_shipping')): ?>
+            <div class="order-summary-row order-summary-discount">
+                <span class="order-summary-label">
+                    Shipping Discount
+                    <span class="order-voucher-code">(<?= encode($order['voucher']['code']); ?>)</span>
+                </span>
+                <span class="order-summary-value">- RM <?= number_format($order['shipping_voucher_discount'] ?? 0, 2); ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <div class="order-summary-row">
+            <span class="order-summary-label">
+                Shipping
+                <span class="order-shipping-method">(<?= encode($order['shipping_method'] ?? 'Standard Shipping'); ?>)</span>
+            </span>
+            <span class="order-summary-value">RM <?= number_format($order['shipping_fee'] ?? 0, 2); ?></span>
+        </div>
+        
+        <div class="order-summary-divider"></div>
+        
+        <div class="order-summary-row order-summary-total">
+            <span class="order-summary-label">Total</span>
+            <span class="order-summary-value-large">RM <?= number_format($order['total_amount'], 2); ?></span>
+        </div>
     </div>
 </section>
+
+<?php if (!empty($order['payments'])): ?>
+<section class="panel">
+    <h2 style="margin-top: 0;">Payment Information</h2>
+    <div class="order-shipping-info">
+        <?php 
+        $payLaterPayments = [];
+        $otherPayments = [];
+        foreach ($order['payments'] as $payment) {
+            if ($payment['payment_method'] === 'PayLater') {
+                $payLaterPayments[] = $payment;
+            } else {
+                $otherPayments[] = $payment;
+            }
+        }
+        ?>
+        
+        <?php if (!empty($otherPayments)): ?>
+            <?php foreach ($otherPayments as $payment): ?>
+                <div class="order-info-row">
+                    <span class="order-info-label">Payment Method</span>
+                    <span class="order-info-value">
+                        <?= encode($payment['payment_method']); ?>
+                    </span>
+                </div>
+                <div class="order-info-row">
+                    <span class="order-info-label">Amount</span>
+                    <span class="order-info-value">RM <?= number_format($payment['amount'], 2); ?></span>
+                </div>
+                <?php if (!empty($payment['transaction_ref'])): ?>
+                    <div class="order-info-row">
+                        <span class="order-info-label">Transaction Reference</span>
+                        <span class="order-info-value"><?= encode($payment['transaction_ref']); ?></span>
+                    </div>
+                <?php endif; ?>
+                <?php if ($payment !== end($otherPayments)): ?>
+                    <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        
+        <?php if (!empty($payLaterPayments)): ?>
+            <?php if (!empty($otherPayments)): ?>
+                <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
+            <?php endif; ?>
+            <div class="order-info-row">
+                <span class="order-info-label">Payment Method</span>
+                <span class="order-info-value">PayLater</span>
+            </div>
+            <?php if (count($payLaterPayments) > 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
+                <div class="order-info-row">
+                    <span class="order-info-label">PayLater Plan</span>
+                    <span class="order-info-value">
+                        <?= count($payLaterPayments); ?> instalments (<?= $payLaterPayments[0]['tenure_months']; ?> months)
+                    </span>
+                </div>
+            <?php elseif (count($payLaterPayments) === 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
+                <div class="order-info-row">
+                    <span class="order-info-label">PayLater Plan</span>
+                    <span class="order-info-value">
+                        1 instalment (<?= $payLaterPayments[0]['tenure_months']; ?> month)
+                    </span>
+                </div>
+            <?php else: ?>
+                <div class="order-info-row">
+                    <span class="order-info-label">PayLater Plan</span>
+                    <span class="order-info-value">
+                        <?= count($payLaterPayments); ?> instalment<?= count($payLaterPayments) > 1 ? 's' : ''; ?>
+                    </span>
+                </div>
+            <?php endif; ?>
+            <div style="margin-top: 1rem;">
+                <a href="?module=bills&action=index" class="btn secondary">See more in PayLater</a>
+            </div>
+        <?php endif; ?>
+    </div>
+</section>
+<?php endif; ?>
 
