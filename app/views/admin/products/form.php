@@ -56,7 +56,7 @@
                             <?php endif; ?>
                         </div>
                         <div class="photo-actions">
-                            <button type="button" class="btn small btn-primary-action" onclick="setPrimaryPhoto(<?= $photo['id']; ?>, <?= $product['id']; ?>)">
+                            <button type="button" class="setPrimaryBtn btn small btn-primary-action" onclick="setPrimaryPhoto(<?= $photo['id']; ?>, <?= $product['id']; ?>)">
                                 Set Primary
                             </button>
                             <button type="button" class="photosDanger btn-small" onclick="deletePhoto(<?= $photo['id']; ?>, <?= $product['id']; ?>)">
