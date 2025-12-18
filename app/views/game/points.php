@@ -112,48 +112,88 @@ $currentReward = $currentReward ?? 1;
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: rgba(255,255,255,0.95); border: 2px solid #e0e0e0;"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">No prize</div>
                             <div style="font-weight: 600; color: #666; font-size: 0.8rem;">0 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[0] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Common -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #84fab0, #8fd3f4);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Common</div>
                             <div style="font-weight: 600; color: #0d4f1c; font-size: 0.8rem;">+10 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[10] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Uncommon -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #4facfe, #00f2fe);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Uncommon</div>
                             <div style="font-weight: 600; color: #0a2540; font-size: 0.8rem;">+30 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[30] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Rare -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #a18cd1, #fbc2eb);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Rare</div>
                             <div style="font-weight: 600; color: #280b3a; font-size: 0.8rem;">+80 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[80] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Epic -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #f6d365, #fda085);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Epic</div>
                             <div style="font-weight: 600; color: #3b2200; font-size: 0.8rem;">+150 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[150] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Jackpot -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #ff6b35, #f7931e, #ffcc00);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Jackpot</div>
                             <div style="font-weight: 600; color: #3b2200; font-size: 0.8rem;">+500 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[500] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Mega Jackpot -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #e8e8e8, #c0c0c0, #a8a8a8);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Mega</div>
                             <div style="font-weight: 600; color: #1a1a1a; font-size: 0.8rem;">+1000 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[1000] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                         <!-- Ultimate Jackpot -->
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.75rem; border-radius: 8px; background: #f9f9f9; flex: 1;">
                             <div style="width: 50px; height: 50px; border-radius: 6px; background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);"></div>
                             <div style="font-weight: 500; color: #333; font-size: 0.85rem; text-align: center;">Ultimate</div>
                             <div style="font-weight: 600; color: #1a1a1a; font-size: 0.8rem;">+5000 pts</div>
+                            <?php 
+                            $prob = $prizeProbabilities[5000] ?? 0;
+                            $displayProb = ($prob == (int)$prob) ? (int)$prob : number_format($prob, 2);
+                            ?>
+                            <div style="font-size: 0.75rem; color: #999;">1/<?= $displayProb; ?></div>
                         </div>
                     </div>
         </div>
