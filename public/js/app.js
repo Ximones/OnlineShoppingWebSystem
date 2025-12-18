@@ -133,5 +133,41 @@ $(function () {
     };
     initFavoriteToggle();
 
+
+    //  PRODUCT DETAIL PHOTO SLIDER WITH FADE 
+    let currentPhotoIndex = 0;
+    const $thumbnails = $('.product-photo-view__thumb');
+    const $mainPhoto = $('#productMainPhoto');
+
+    window.changeMainPhoto = function(thumbElement, index) {
+    currentPhotoIndex = index;
+    const newSrc = $(thumbElement).attr('src');
+    const $mainPhoto = $('#productMainPhoto'); 
+
+    $mainPhoto.addClass('photo-fade-out');
+
+    setTimeout(function() {
+     
+        $mainPhoto.attr('src', newSrc);  
+        $thumbnails.removeClass('is-active');
+        $(thumbElement).addClass('is-active');
+
+        setTimeout(function() {
+            $mainPhoto.removeClass('photo-fade-out');
+        }, 50);
+    }, 350); 
+ };
+    window.moveSlider = function(step) {
+        if ($thumbnails.length <= 1) return;
+        currentPhotoIndex += step;
+
+        if (currentPhotoIndex >= $thumbnails.length) {
+            currentPhotoIndex = 0;
+        } else if (currentPhotoIndex < 0) {
+            currentPhotoIndex = $thumbnails.length - 1;
+        }
+        const targetThumb = $thumbnails.get(currentPhotoIndex);
+        window.changeMainPhoto(targetThumb, currentPhotoIndex);
+    };
 });
 

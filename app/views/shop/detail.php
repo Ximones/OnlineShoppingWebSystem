@@ -4,11 +4,15 @@
     <div class="product-photo-view">
         <?php if (!empty($photos)): ?>
             <div class="product-photo-view__main">
+                <button class="slider-arrow prev" onclick="moveSlider(-1)">&#10094;</button>
+
                 <img
                     id="productMainPhoto"
                     src="<?= encode($photos[0]['photo_path']); ?>"
                     alt="<?= encode($product['name']); ?>"
                 >
+                
+                <button class="slider-arrow next" onclick="moveSlider(1)">&#10095;</button>
             </div>
 
             <?php if (count($photos) > 1): ?>
