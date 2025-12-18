@@ -289,8 +289,8 @@ class CartController extends Controller
                     $stripe = new StripeService();
                     $session = $stripe->createCheckoutSession(
                         $lineItems,
-                        APP_URL . '/?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId,
-                        APP_URL . '/?module=cart&action=stripe_cancel&order_id=' . $orderId
+                        url('?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId),
+                        url('?module=cart&action=stripe_cancel&order_id=' . $orderId)
                     );
 
                     // 3. Redirect

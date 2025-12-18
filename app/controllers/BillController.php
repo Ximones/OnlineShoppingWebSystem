@@ -71,8 +71,8 @@ class BillController extends Controller
 
         $session = $stripe->createCheckoutSession(
             $lineItems,
-            APP_URL . '/?module=bills&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&payment_id=' . $paymentId,
-            APP_URL . '/?module=bills&action=stripe_cancel'
+            url('?module=bills&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&payment_id=' . $paymentId),
+            url('?module=bills&action=stripe_cancel')
         );
 
         header("HTTP/1.1 303 See Other");

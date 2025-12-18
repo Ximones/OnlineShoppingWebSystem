@@ -1,6 +1,12 @@
 <?php
 
 require_once __DIR__ . '/../vendor/autoload.php';
+
+// Load environment variables BEFORE config files that use them
+use Dotenv\Dotenv;
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+$dotenv->load();
+
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/database.php';
 
@@ -13,10 +19,6 @@ require_once __DIR__ . '/lib/rewards.php';
 
 require_once __DIR__ . '/core/Controller.php';
 require_once __DIR__ . '/core/Router.php';
-
-use Dotenv\Dotenv;
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../');
-$dotenv->load();
 
 spl_autoload_register(function ($class) {
     $prefix = 'App\\';

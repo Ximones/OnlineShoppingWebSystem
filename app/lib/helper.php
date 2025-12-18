@@ -63,6 +63,20 @@ function asset(string $path): string {
     return APP_BASE_URL . ltrim($path, '/');
 }
 
+function url(string $path = ''): string {
+    $baseUrl = rtrim(APP_URL, '/');
+    if (empty($path)) {
+        return $baseUrl . '/';
+    }
+    // If path starts with '?', don't add a leading slash
+    if (str_starts_with($path, '?')) {
+        return $baseUrl . $path;
+    }
+    // Otherwise, ensure proper path formatting
+    $path = ltrim($path, '/');
+    return $baseUrl . '/' . $path;
+}
+
 function csrf_token(): string {
     if (!isset($_SESSION['_csrf_token'])) {
         $_SESSION['_csrf_token'] = bin2hex(random_bytes(16));
