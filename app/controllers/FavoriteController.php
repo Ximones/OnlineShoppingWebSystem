@@ -16,12 +16,17 @@ class FavoriteController extends Controller
 
     public function toggle(): void
     {
+        if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
         $user = auth_user();
         if (!$user) {
           
+            flash('danger', 'Please login to continue.');
+
             http_response_code(401); 
             header('Content-Type: application/json');
-            echo json_encode(['success' => false, 'message' => 'Login required to favorite items.']);
+            echo json_encode(['success' => false]);
             exit;
         }
 
