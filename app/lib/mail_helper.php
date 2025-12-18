@@ -11,8 +11,8 @@ function get_mail() {
     $m->Host = 'smtp.gmail.com';
     $m->Port = 587;
     $m->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $m->Username = 'bmit2013lwc@gmail.com';
-    $m->Password = 'kmjq wngb dhua unhv';
+    $m->Username = 'bait2173.email@gmail.com';
+    $m->Password = 'ncom fsil wjzk ptre';
     $m->CharSet = 'utf-8';
     $m->setFrom($m->Username, '🚽 Daily Bowls');
     $m->isHTML(true);
