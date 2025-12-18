@@ -52,7 +52,7 @@ class Order
             $orderStatus = $options['order_status'] ?? 'pending';
 
             $shippingMethod = $options['shipping_method'] ?? 'standard';
-            
+
             // Map shipping method key to label
             $shippingMethodLabels = [
                 'standard' => 'Standard Shipping (3-5 days)',
@@ -60,7 +60,7 @@ class Order
                 'pickup' => 'Self Pickup (Free)',
             ];
             $shippingMethodLabel = $shippingMethodLabels[$shippingMethod] ?? 'Standard Shipping (3-5 days)';
-            
+
             $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address, shipping_method, points_discount, voucher_discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stm->execute([
                 $userId,
@@ -187,17 +187,17 @@ class Order
         $order['points_discount'] = (float)($order['points_discount'] ?? 0);
         $order['voucher_discount'] = (float)($order['voucher_discount'] ?? 0);
         $order['shipping_method'] = $order['shipping_method'] ?? 'Standard Shipping (3-5 days)';
-        
+
         // Calculate shipping voucher discount if voucher was used
         $order['shipping_voucher_discount'] = 0.0;
-        
+
         if ($order['voucher']) {
             $voucher = $order['voucher'];
-            
+
             // If voucher discount wasn't stored (for old orders), calculate it
             if ($order['voucher_discount'] == 0 && ($voucher['type'] === 'amount' || $voucher['type'] === 'percent')) {
                 $subtotal = $order['subtotal'];
-                
+
                 if ($voucher['type'] === 'amount') {
                     $order['voucher_discount'] = min((float)$voucher['value'], $subtotal);
                 } elseif ($voucher['type'] === 'percent') {
@@ -208,7 +208,7 @@ class Order
                     $order['voucher_discount'] = $discount;
                 }
             }
-            
+
             // Check for shipping vouchers
             if ($voucher['type'] === 'shipping_amount') {
                 $order['shipping_voucher_discount'] = (float)$voucher['value'];
@@ -225,9 +225,9 @@ class Order
         // So: shipping_fee = total - subtotal + voucher_discount + points_discount + shipping_voucher_discount
         $subtotal = $order['subtotal'];
         $total = $order['total_amount'];
-        
+
         $order['shipping_fee'] = max(0, $total - $subtotal + $order['voucher_discount'] + $order['points_discount']);
-        
+
         // Apply shipping voucher discount if applicable
         if ($order['shipping_voucher_discount'] > 0) {
             if ($order['voucher']['type'] === 'free_shipping') {
@@ -294,5 +294,11 @@ class Order
         $stm = $this->db->prepare($sql);
         $stm->execute($params);
         return $stm->fetchAll();
+    }
+
+    public function updateStatus(int $id, string $status): void
+    {
+        $stm = $this->db->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?');
+        $stm->execute([$status, $id]);
     }
 }

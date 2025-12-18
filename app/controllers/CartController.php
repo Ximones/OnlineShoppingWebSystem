@@ -10,6 +10,7 @@ use App\Models\SavedAddress;
 use App\Models\User;
 use App\Models\Payment;
 use App\Models\UserVoucher;
+use App\Services\StripeService;
 
 class CartController extends Controller
 {
@@ -104,7 +105,7 @@ class CartController extends Controller
         $selectedIds = $context['selected_item_ids'] ?? array_column($items, 'id');
         $selectedIds = array_map('intval', $selectedIds);
         if ($selectedIds) {
-            $items = array_values(array_filter($items, fn ($item) => in_array((int) $item['id'], $selectedIds, true)));
+            $items = array_values(array_filter($items, fn($item) => in_array((int) $item['id'], $selectedIds, true)));
         }
         if (empty($items)) {
             flash('danger', 'Please select at least one item to checkout.');
@@ -173,7 +174,7 @@ class CartController extends Controller
 
             // PayLater payments are marked as 'completed' immediately, so order is 'paid'
             // Other payment methods are also 'paid' since payment is completed immediately
-            $orderStatus = 'paid';
+            $orderStatus = ($paymentMethod === 'Credit Card') ? 'pending' : 'paid';
 
             // Compute PayLater charges and enforce credit limit
             $amount = (float) $pricingSummary['payable_total'];
@@ -245,7 +246,7 @@ class CartController extends Controller
                         $isLast = $i === $paylaterTenure;
                         $instPrincipal = $isLast ? $principalLast : $principalPerMonth;
                         $instAmount = $isLast ? $paymentLast : $paymentPerMonth;
-                         $dueDate = $startDate->modify('+' . $i . ' month')->format('Y-m-d');
+                        $dueDate = $startDate->modify('+' . $i . ' month')->format('Y-m-d');
                         $this->payments->create(
                             $orderId,
                             'PayLater',
@@ -270,8 +271,33 @@ class CartController extends Controller
                             'completed'
                         );
                     }
+                } elseif ($paymentMethod === 'Credit Card') {
+                    // 1. Prepare Items
+                    $lineItems = [];
+                    foreach ($items as $item) {
+                        $lineItems[] = [
+                            'price_data' => [
+                                'currency' => 'myr',
+                                'product_data' => ['name' => $item['name']],
+                                'unit_amount' => (int)($item['price'] * 100),
+                            ],
+                            'quantity' => (int)$item['quantity'],
+                        ];
+                    }
+
+                    // 2. Use the Service
+                    $stripe = new StripeService();
+                    $session = $stripe->createCheckoutSession(
+                        $lineItems,
+                        APP_URL . '/?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId,
+                        APP_URL . '/?module=cart&action=stripe_cancel&order_id=' . $orderId
+                    );
+
+                    // 3. Redirect
+                    header("HTTP/1.1 303 See Other");
+                    header("Location: " . $session->url);
+                    exit();
                 } else {
-                    // Non-PayLater: single immediate payment
                     $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
                 }
             }
@@ -327,14 +353,14 @@ class CartController extends Controller
     public function prepare_checkout(): void
     {
         $this->requireAuth();
-        
+
         // First, update cart quantities if provided
         if (post('items')) {
             foreach (post('items', []) as $itemId => $quantity) {
                 $this->cart->updateItem((int) $itemId, max(1, (int) $quantity));
             }
         }
-        
+
         $selected = array_filter(array_map('intval', post('selected_items', [])));
         if (empty($selected)) {
             flash('danger', 'Select at least one item to proceed.');
@@ -351,7 +377,7 @@ class CartController extends Controller
 
     private function calculatePricingSummary(array $items, ?array $user, bool $usePoints, string $shippingMethod, ?array $voucher, int $orderCount): array
     {
-        $subtotal = array_reduce($items, fn ($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
+        $subtotal = array_reduce($items, fn($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
         $availablePoints = (int) floor((float) ($user['reward_points'] ?? 0));
         $maxRedeemableRm = min($subtotal, (int) floor($availablePoints / 100));
         $pointsRedeemed = $usePoints ? $maxRedeemableRm * 100 : 0;
@@ -428,6 +454,55 @@ class CartController extends Controller
             'use_points' => $usePoints,
         ];
     }
+
+    public function stripe_success(): void
+    {
+        $this->requireAuth();
+        $sessionId = get('session_id');
+        $orderId = get('order_id');
+
+        $stripe = new StripeService();
+
+        if ($stripe->isPaid($sessionId)) {
+            // 1. Record Payment
+            $amountPaid = $stripe->getAmount($sessionId);
+            $this->payments->create($orderId, 'Credit Card', $amountPaid, $amountPaid, 'completed');
+
+            // 2. Update Order Status
+            $this->orders->updateStatus($orderId, 'paid');
+
+            // 3. Clear Session
+            unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
+
+            flash('success', 'Payment successful! Order confirmed.');
+            redirect("?module=orders&action=detail&id=$orderId");
+        } else {
+            flash('danger', 'Payment verification failed.');
+            redirect('?module=cart&action=checkout');
+        }
+    }
+
+    public function stripe_cancel(): void
+    {
+        $this->requireAuth();
+        $orderId = get('order_id');
+        $userId = auth_id();
+
+        // 1. Mark Order as Cancelled
+        $this->orders->updateStatus($orderId, 'cancelled');
+
+        // 2. Restore Items to Cart
+        $order = $this->orders->detail($orderId);
+
+        if ($order && $order['user_id'] == $userId) {
+            $cartId = $this->cart->activeCartId($userId);
+
+            foreach ($order['items'] as $item) {
+                $this->cart->addItem($cartId, (int)$item['product_id'], (int)$item['quantity']);
+            }
+        }
+
+        flash('warning', 'Payment was cancelled. Your items have been restored to the cart.');
+        redirect('?module=cart&action=checkout');
+    }
 }
-
-
