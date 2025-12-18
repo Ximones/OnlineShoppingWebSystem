@@ -78,11 +78,16 @@ class Favorite
      * @param int $userId
      * @return array An array of product details.
      */
-    public function getFavoritesByUserId(int $userId): array
+   public function getFavoritesByUserId(int $userId): array
     {
         $sql = "
-            SELECT p.*, uf.created_at AS favorited_at FROM products p
+            SELECT 
+                p.*, 
+                pp.photo_path,
+                uf.created_at AS favorited_at 
+            FROM products p
             JOIN {$this->table} uf ON p.id = uf.product_id
+            LEFT JOIN product_photos pp ON p.id = pp.product_id AND pp.is_primary = 1
             WHERE uf.user_id = :user_id
             ORDER BY uf.created_at DESC
         ";
