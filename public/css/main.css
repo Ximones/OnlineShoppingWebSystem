@@ -1639,6 +1639,14 @@ form textarea[readonly] {
 
 /* --- Multiple product photos view --- */
 
+.product-card img {
+    width: 100%;            /* Fills the width of the card */
+    height: 250px;          /* Set a fixed height for all images */
+    object-fit: contain;    /* Keeps the whole image visible without stretching */
+    background-color: #fff; /* Optional: adds a white background if the image is small */
+    padding: 10px;          /* Optional: adds some breathing room around the toilet */
+}
+
 .product-detail {
     display: flex;
     gap: 40px;
