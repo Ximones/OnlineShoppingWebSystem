@@ -62,6 +62,7 @@ $productPhotoModel = new ProductPhoto();
 
 <section class="grid">
     <?php foreach ($products as $product): ?>
+        <?php if (($product['status'] ?? '') !== 'active') continue; ?>
         <?php
         $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
         $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/400x250';

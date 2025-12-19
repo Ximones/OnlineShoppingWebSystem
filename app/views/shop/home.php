@@ -56,6 +56,7 @@ $allPhotos = $allPhotos ?? [];
 
         <div class="home-products-row" id="home-products-row-toilets">
             <?php foreach ($toiletProducts as $product): ?>
+                <?php if (($product['status'] ?? '') !== 'active') continue; ?>
                 <?php
                 $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
                 $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
