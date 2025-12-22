@@ -67,41 +67,52 @@ class ShopController extends Controller
         ]);
     }
 
-    public function catalog(): void
+   public function catalog(): void
 {
     $minPriceRaw = get('min_price');
     $maxPriceRaw = get('max_price');
-    
-    // 1. Capture the sort value from the request
     $sort = get('sort', ''); 
-
+    $page = (int)get('page', 1);
+    if ($page < 1) $page = 1;
+    
+    $perPage = 4; 
+    $offset = ($page - 1) * $perPage;
+    
     $filters = [
         'keyword' => get('keyword', ''),
         'category_id' => get('category_id', ''),
-        'min_price' => (is_numeric($minPriceRaw) && $minPriceRaw >= 0) ? (float)$minPriceRaw : null,
-        'max_price' => (is_numeric($maxPriceRaw) && $maxPriceRaw >= 0) ? (float)$maxPriceRaw : null,
-        'sort' => $sort, // 2. Add it to the filters array
+        'min_price' => get('min_price'),
+        'max_price' => get('max_price'),
+        'sort' => $sort,
+        'limit' => $perPage,
+        'offset' => $offset
     ];
 
-    // Your Model's all() method needs to be updated to handle $filters['sort']
+    $totalProducts = $this->products->countAll($filters); 
+    $totalPages = ceil($totalProducts / $perPage);
     $products = $this->products->all($filters);
-    
     $categories = $this->categories->all();
-
     $user = auth_user();
 
     if ($user && !empty($products)) {
         $userId = $user['id'];
         foreach ($products as &$product) {
-            $product['is_favorited'] = $this->favorites->checkFavorite(
-                $userId,
-                $product['id']
-            );
+            $product['is_favorited'] = $this->favorites->checkFavorite($userId, $product['id']);
         }
         unset($product);
     }
     
-    $this->render('shop/catalog', compact('products', 'categories', 'filters'));
+    if (get('ajax') === '1') {
+        $productPhotoModel = new \App\Models\ProductPhoto();
+        
+        extract(compact('products', 'productPhotoModel', 'totalPages', 'page')); 
+        ob_start();
+        require __DIR__ . '/../views/shop/productgrid.php'; 
+        echo ob_get_clean();
+        exit;
+    }
+    
+    $this->render('shop/catalog', compact('products', 'categories', 'filters', 'totalPages', 'page'));
 }
 
     public function detail(): void
@@ -116,19 +127,13 @@ class ShopController extends Controller
 
         $productPhotos = new ProductPhoto();
         $photos = $productPhotos->getByProductId($id);
-
-        
-        // --- START: ADD FAVORITE CHECK FOR DETAIL PAGE ---
         $isFavorited = false;
-        $user = auth_user(); // Get current user
+        $user = auth_user(); 
         
         if ($user) {
-            // Check if the current user has favorited this specific product
             $isFavorited = $this->favorites->checkFavorite($user['id'], $product['id']);
         }
-        // --- END: ADD FAVORITE CHECK ---
         
-        // Pass both the product and the favorite status to the view
         $this->render('shop/detail', compact('product', 'photos', 'isFavorited'));
     }
 }

@@ -76,9 +76,9 @@ $(function () {
         $panel.find('#' + targetId).addClass('is-active');
     });
 
-    // --- FAVORITES TOGGLE LOGIC ---
+    // favorites toggle 
     const initFavoriteToggle = function() {
-    // Select all favorite toggle elements on the page
+   
     const toggleButtons = document.querySelectorAll('.favorite-toggle');
 
     toggleButtons.forEach(button => {
@@ -134,7 +134,7 @@ $(function () {
     initFavoriteToggle();
 
 
-    //  PRODUCT DETAIL PHOTO SLIDER WITH FADE 
+    //  product photos slider with fade
     let currentPhotoIndex = 0;
     const $thumbnails = $('.product-photo-view__thumb');
     const $mainPhoto = $('#productMainPhoto');
@@ -169,5 +169,85 @@ $(function () {
         const targetThumb = $thumbnails.get(currentPhotoIndex);
         window.changeMainPhoto(targetThumb, currentPhotoIndex);
     };
+
+    
+    // live search filtering, category selection, pagination without page reload
+$(function () {
+    const $productGrid = $('#product-grid');
+    const $paginationTarget = $('#pagination-ajax-target'); 
+    let debounceTimer;
+
+    const updateProducts = (page = 1) => {
+    const $filterForm = $('#filter-form');
+    const $productGrid = $('#product-grid');
+    const $paginationTarget = $('#pagination-ajax-target');
+
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const module = urlParams.get('module') || 'shop';
+    const action = urlParams.get('action') || 'catalog';
+
+    let formData = $filterForm.length ? $filterForm.serializeArray() : [];
+    
+ 
+    formData.push({ name: 'module', value: module });
+    formData.push({ name: 'action', value: action });
+    formData.push({ name: 'ajax', value: '1' });
+    formData.push({ name: 'page', value: page });
+    
+    const queryString = $.param(formData);
+
+    $productGrid.css('opacity', '0.5');
+
+    fetch(`?${queryString}`)
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newGrid = doc.querySelector('#product-grid');
+            const newPagination = doc.querySelector('#pagination-ajax-target');
+
+            if (newGrid && $productGrid.length) {
+                $productGrid.html(newGrid.innerHTML);
+            }
+
+            if (newPagination && $paginationTarget.length) {
+                $paginationTarget.html(newPagination.innerHTML);
+            } else {
+                console.warn("Pagination target not found in server response. Check PHP controller.");
+            }
+
+            $productGrid.css('opacity', '1');
+            
+            if (typeof initFavoriteToggle === "function") {
+                initFavoriteToggle();
+            }
+
+            const cleanQuery = queryString.replace('&ajax=1', '');
+            window.history.pushState({}, '', `?${cleanQuery}`);
+
+            window.scrollTo({ top: $productGrid.offset().top - 100, behavior: 'smooth' });
+        })
+        .catch(error => {
+            console.error('Error fetching results:', error);
+            $productGrid.css('opacity', '1');
+        });
+};
+
+    // Auto search listener
+    $('#keyword-search, #category-filter, #sort-filter, .price-input').on('input change', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => updateProducts(1), 500); 
+    });
+
+    // Paging click listener
+    $(document).on('click', '.page-link', function (e) {
+        e.preventDefault();
+        const page = $(this).data('page');
+        if (page && !$(this).hasClass('disabled') && !$(this).hasClass('is-active')) {
+            updateProducts(page);
+        }
+    });
+}); 
 });
 

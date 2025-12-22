@@ -1638,6 +1638,54 @@ form textarea[readonly] {
     text-align: right;
 }
 
+/* --- Container to center the paging --- */
+
+.pagination-container {
+    display: flex;
+    justify-content: center; 
+    width: 100%;
+    padding: 40px 0;
+}
+
+.pagination {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 15px;
+    border-radius: 8px;
+    background: #fff;
+    color: #333;
+    text-decoration: none;
+    border: 1px solid #e0e0e0;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.page-link:hover {
+    border-color: #000;
+    background: #f8f8f8;
+}
+
+.page-link.is-active {
+    background: #000; 
+    color: #fff;
+    border-color: #000;
+}
+
+.page-link.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    background: #eee;
+}
+
 /* --- Multiple product photos view --- */
 
 .product-card img {
