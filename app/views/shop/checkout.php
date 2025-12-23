@@ -184,38 +184,36 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
         </p>
     </div>
 
-    <div class="checkout-card-group">
+    <div class="checkout-card-group" style="margin-top: 1.5rem;">
         <div class="checkout-card-header">Payment method</div>
-        <?php $currentPayment = post('payment_method', 'Online Banking'); ?>
+        <?php $currentPayment = post('payment_method', 'Stripe'); ?>
         <div class="payment-options">
-            <?php
-            $methods = [
-                'Online Banking' => 'Online Banking',
-                'Credit Card' => 'Credit Card',
-                'PayLater' => 'Pay Later',
-            ];
-            foreach ($methods as $value => $label):
-                $checked = $currentPayment === $value;
-            ?>
-                <label class="payment-card <?= $checked ? 'is-selected' : ''; ?>">
-                    <input type="radio"
-                           name="payment_method"
-                           value="<?= encode($value); ?>"
-                           form="checkout-form"
-                           <?= $checked ? 'checked' : ''; ?>>
-                    <span class="payment-name"><?= encode($label); ?></span>
-                    <?php if ($value === 'PayLater'): ?>
-                        <?php
-                        $principal = (float) ($pricingSummary['payable_total'] ?? 0);
-                        $creditLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
-                        $availableLimit = max(0.0, $creditLimit - (float) $outstandingPayLater);
-                        ?>
-                        <span class="payment-note">
-                            Pay later via Bills • Available limit RM <?= number_format($availableLimit, 2); ?>
-                        </span>
-                    <?php endif; ?>
-                </label>
-            <?php endforeach; ?>
+            <label class="payment-card <?= $currentPayment === 'Stripe' ? 'is-selected' : ''; ?>">
+                <input type="radio"
+                       name="payment_method"
+                       value="Stripe"
+                       form="checkout-form"
+                       <?= $currentPayment === 'Stripe' ? 'checked' : ''; ?>>
+                <span class="payment-name">Pay with Stripe</span>
+                <span class="payment-note">Secure payment via Stripe checkout</span>
+            </label>
+
+            <label class="payment-card <?= $currentPayment === 'PayLater' ? 'is-selected' : ''; ?>">
+                <input type="radio"
+                       name="payment_method"
+                       value="PayLater"
+                       form="checkout-form"
+                       <?= $currentPayment === 'PayLater' ? 'checked' : ''; ?>>
+                <span class="payment-name">PayLater</span>
+                <?php
+                $principal = (float) ($pricingSummary['payable_total'] ?? 0);
+                $creditLimit = $user ? (float)($user['paylater_credit_limit'] ?? 10000.0) : 10000.0;
+                $availableLimit = max(0.0, $creditLimit - (float) $outstandingPayLater);
+                ?>
+                <span class="payment-note">
+                    Pay later via Bills • Available limit RM <?= number_format($availableLimit, 2); ?>
+                </span>
+            </label>
         </div>
 
         <?php if ($currentPayment === 'PayLater'): ?>

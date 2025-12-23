@@ -166,15 +166,14 @@ class CartController extends Controller
 
             $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
 
-            $paymentMethod = post('payment_method', 'Online Banking');
+            $paymentMethod = post('payment_method', 'Stripe');
             $paylaterTenure = (int) post('paylater_tenure', 3);
             if (!in_array($paylaterTenure, [3, 6, 12], true)) {
                 $paylaterTenure = 3;
             }
 
-            // PayLater payments are marked as 'completed' immediately, so order is 'paid'
-            // Other payment methods are also 'paid' since payment is completed immediately
-            $orderStatus = ($paymentMethod === 'Credit Card') ? 'pending' : 'paid';
+            // Stripe payments are 'pending' until payment is confirmed, PayLater is 'paid' immediately
+            $orderStatus = ($paymentMethod === 'Stripe') ? 'pending' : 'paid';
 
             // Compute PayLater charges and enforce credit limit
             $amount = (float) $pricingSummary['payable_total'];
@@ -262,7 +261,7 @@ class CartController extends Controller
 
                     // If principal exceeds available credit, remaining part must be paid immediately
                     if (!empty($principalImmediate) && $principalImmediate > 0) {
-                        $upfrontMethod = post('paylater_upfront_method', 'Online Banking');
+                        $upfrontMethod = post('paylater_upfront_method', 'Stripe');
                         $this->payments->create(
                             $orderId,
                             $upfrontMethod,
@@ -271,7 +270,7 @@ class CartController extends Controller
                             'completed'
                         );
                     }
-                } elseif ($paymentMethod === 'Credit Card') {
+                } elseif ($paymentMethod === 'Stripe') {
                     // 1. Prepare Items
                     $lineItems = [];
                     foreach ($items as $item) {
@@ -298,6 +297,7 @@ class CartController extends Controller
                     header("Location: " . $session->url);
                     exit();
                 } else {
+                    // Fallback for any other payment method (shouldn't happen with current design)
                     $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
                 }
             }
@@ -466,7 +466,7 @@ class CartController extends Controller
         if ($stripe->isPaid($sessionId)) {
             // 1. Record Payment
             $amountPaid = $stripe->getAmount($sessionId);
-            $this->payments->create($orderId, 'Credit Card', $amountPaid, $amountPaid, 'completed');
+            $this->payments->create($orderId, 'Stripe', $amountPaid, $amountPaid, 'completed');
 
             // 2. Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
