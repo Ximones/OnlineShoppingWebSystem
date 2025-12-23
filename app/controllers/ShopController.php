@@ -67,53 +67,53 @@ class ShopController extends Controller
         ]);
     }
 
-   public function catalog(): void
-{
-    $minPriceRaw = get('min_price');
-    $maxPriceRaw = get('max_price');
-    $sort = get('sort', ''); 
-    $page = (int)get('page', 1);
-    if ($page < 1) $page = 1;
-    
-    $perPage = 4; 
-    $offset = ($page - 1) * $perPage;
-    
-    $filters = [
-        'keyword' => get('keyword', ''),
-        'category_id' => get('category_id', ''),
-        'min_price' => get('min_price'),
-        'max_price' => get('max_price'),
-        'sort' => $sort,
-        'limit' => $perPage,
-        'offset' => $offset
-    ];
-
-    $totalProducts = $this->products->countAll($filters); 
-    $totalPages = ceil($totalProducts / $perPage);
-    $products = $this->products->all($filters);
-    $categories = $this->categories->all();
-    $user = auth_user();
-
-    if ($user && !empty($products)) {
-        $userId = $user['id'];
-        foreach ($products as &$product) {
-            $product['is_favorited'] = $this->favorites->checkFavorite($userId, $product['id']);
-        }
-        unset($product);
-    }
-    
-    if (get('ajax') === '1') {
-        $productPhotoModel = new \App\Models\ProductPhoto();
+    public function catalog(): void
+    {
+        $minPriceRaw = get('min_price');
+        $maxPriceRaw = get('max_price');
+        $sort = get('sort', ''); 
+        $page = (int)get('page', 1);
+        if ($page < 1) $page = 1;
         
-        extract(compact('products', 'productPhotoModel', 'totalPages', 'page')); 
-        ob_start();
-        require __DIR__ . '/../views/shop/productgrid.php'; 
-        echo ob_get_clean();
-        exit;
+        $perPage = 12; 
+        $offset = ($page - 1) * $perPage;
+        
+        $filters = [
+            'keyword' => get('keyword', ''),
+            'category_id' => get('category_id', ''),
+            'min_price' => get('min_price'),
+            'max_price' => get('max_price'),
+            'sort' => $sort,
+            'limit' => $perPage,
+            'offset' => $offset
+        ];
+
+        $totalProducts = $this->products->countAll($filters); 
+        $totalPages = ceil($totalProducts / $perPage);
+        $products = $this->products->all($filters);
+        $categories = $this->categories->all();
+        $user = auth_user();
+
+        if ($user && !empty($products)) {
+            $userId = $user['id'];
+            foreach ($products as &$product) {
+                $product['is_favorited'] = $this->favorites->checkFavorite($userId, $product['id']);
+            }
+            unset($product);
+        }
+        
+        if (get('ajax') === '1') {
+            $productPhotoModel = new \App\Models\ProductPhoto();
+            
+            extract(compact('products', 'productPhotoModel', 'totalPages', 'page')); 
+            ob_start();
+            require __DIR__ . '/../views/shop/productgrid.php'; 
+            echo ob_get_clean();
+            exit;
+        }
+        
+        $this->render('shop/catalog', compact('products', 'categories', 'filters', 'totalPages', 'page'));
     }
-    
-    $this->render('shop/catalog', compact('products', 'categories', 'filters', 'totalPages', 'page'));
-}
 
     public function detail(): void
     {
