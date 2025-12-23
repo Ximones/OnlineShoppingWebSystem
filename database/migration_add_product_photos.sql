@@ -1,3 +1,4 @@
+
 ALTER TABLE products DROP COLUMN photo;
 
 CREATE TABLE product_photos (
@@ -13,7 +14,8 @@ CREATE TABLE product_photos (
 
 INSERT INTO product_photos (product_id, photo_path, is_primary, display_order, created_at)
 VALUES
-(1, '/public/uploads/upload_694183baa87d30.62578953_OnePieceRound-1.png', 1, 0, NOW()),
-(1, '/public/uploads/upload_694183c4cf8aa6.00621264_OnePieceRound-2.png', 0, 0, NOW()),
-(1, '/public/uploads/upload_694183cdb620a1.54042201_OnePieceRound-3.png', 0, 0, NOW()),
-(1, '/public/uploads/upload_694183db2c41c5.40138647_OnePieceRound-4.png', 0, 0, NOW());
+-- Product 1
+(1, '/public/uploads/upload_69418315d30219.46343895_OnePieceRound-1.png', 1, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418315d0d115.95397763_OnePieceRound-2.png', 0, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418315cea080.13861663_OnePieceRound-3.png', 0, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418370cfb9a2.80186676_OnePieceRound-4.png', 0, 0, '2025-12-19 11:16:17');

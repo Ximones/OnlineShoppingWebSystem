@@ -71,25 +71,38 @@ class FavoriteController extends Controller
     }
     
     public function index(): void
-    {
+{
+    $user = auth_user();
+    if (!$user) {
+        header('Location: ?module=auth&action=login'); 
+        exit; 
+    }
 
-        if (!auth_user()) {
-            
-            header('Location: ?module=auth&action=login'); 
+    $userId = $user['id'];
 
-            exit; 
+    $page = (int)get('page', 1);
+    if ($page < 1) $page = 1;
     
-        }
+    $perPage = 4; 
+    $offset = ($page - 1) * $perPage;
 
-        $userId = auth_user()['id'];
-        
-     
-        $favoriteProducts = $this->favorites->getFavoritesByUserId($userId);
+    $totalFavorites = $this->favorites->countFavoritesByUserId($userId);
+    $totalPages = ceil($totalFavorites / $perPage);
+    $favoriteProducts = $this->favorites->getPaginatedFavoritesByUserId($userId, $perPage, $offset);
 
-       
+    if (get('ajax') === '1') {
         $this->render('favorites/index', [
             'favoriteProducts' => $favoriteProducts,
-            'title' => 'My Favorites'
-        ]);
+            'page' => $page,
+            'totalPages' => $totalPages
+        ], 'ajax_layout'); 
     }
+
+    $this->render('favorites/index', [
+        'favoriteProducts' => $favoriteProducts,
+        'page' => $page,
+        'totalPages' => $totalPages,
+        'title' => 'My Favorites'
+    ]);
+}
 }

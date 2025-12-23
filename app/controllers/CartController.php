@@ -12,6 +12,8 @@ use App\Models\Payment;
 use App\Models\UserVoucher;
 use App\Services\StripeService;
 
+require_once __DIR__ . '/../lib/mail_helper.php';
+
 class CartController extends Controller
 {
     private const CHECKOUT_SESSION_KEY = 'checkout_context';
@@ -230,6 +232,20 @@ class CartController extends Controller
                 'voucher_code' => $pricingSummary['voucher_code'],
                 'order_status' => $orderStatus,
             ]);
+            
+            $orderModel = new Order();
+            $orderDetail = $orderModel->detail($orderId);
+            $html = render_ereceipt($orderDetail, $user);
+
+            try {
+                $mail = get_mail();
+                $mail->addAddress($user['email'], $user['name']);
+                $mail->Subject = 'Your E-Receipt (Order #' . $orderId . ')';
+                $mail->Body = $html;
+                $mail->send();
+            } catch (\Throwable $e) {
+                error_log('Receipt email failed: ' . $e->getMessage());
+            }
 
             // Mark voucher as used if one was applied
             if ($selectedVoucher && !empty($pricingSummary['voucher_code'])) {
@@ -302,7 +318,7 @@ class CartController extends Controller
                 }
             }
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
-            flash('success', 'Order created.');
+            flash('success', 'Order placed successfully. Please check your email for your e-receipt.');
             redirect("?module=orders&action=detail&id=$orderId");
         }
 
