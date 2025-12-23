@@ -776,8 +776,16 @@ main.container {
 }
 
 .btn.danger {
+    background: transparent;
+    color: #ff3b30;
+    border: 1px solid #ff3b30;
+    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn.danger:hover {
     background: linear-gradient(135deg, #ff3b30, #ff453a);
     color: #ffffff;
+    box-shadow: 0 10px 25px rgba(255, 59, 48, 0.35);
 }
 
 .btn.is-disabled {
