@@ -1,16 +1,94 @@
 <?php $title = 'Order #' . $order['id']; ?>
+<?php
+$statusSteps = ['pending', 'processing', 'shipped', 'completed'];
+$currentStatus = strtolower($order['status']);
+if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)) {
+    $statusSteps[] = 'cancelled';
+}
+?>
 
+<div class="order-detail-grid">
+<?php if (req('action') !== 'admin_detail'): ?>
 <section class="panel order-detail-header">
     <div class="order-detail-title-row">
         <div>
             <h2 style="margin-top: 0; margin-bottom: 0.25rem;">Order #<?= $order['id']; ?></h2>
             <p style="margin: 0; color: var(--color-text-muted); font-size: 0.9rem;">Placed on <?= encode($order['created_at']); ?></p>
         </div>
-        <div class="order-status-badge order-status-<?= strtolower($order['status']); ?>">
-            <?= encode(ucfirst($order['status'])); ?>
+        <div class="order-detail-header-actions">
+            <div class="order-status-badge order-status-<?= strtolower($order['status']); ?>">
+                <?= encode(ucfirst($order['status'])); ?>
+            </div>
+            <div class="order-detail-buttons">
+                <?php if (!is_admin()): ?>
+                    <form method="post" action="?module=orders&action=reorder&id=<?= $order['id']; ?>" style="display:inline-block; margin-left: 0.5rem;">
+                        <button type="submit" class="btn secondary small">Order Again</button>
+                    </form>
+                    <?php if (in_array($currentStatus, ['pending', 'processing'], true)): ?>
+                        <form method="post" action="?module=orders&action=cancel&id=<?= $order['id']; ?>" style="display:inline-block; margin-left: 0.25rem;" onsubmit="return confirm('Cancel this order?');">
+                            <button type="submit" class="btn small">Cancel Order</button>
+                        </form>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="order-status-timeline">
+        <?php foreach ($statusSteps as $step): ?>
+            <?php
+            $stepLabel = ucfirst($step);
+            $stepClass = 'upcoming';
+            if ($step === $currentStatus) {
+                $stepClass = 'current';
+            } elseif (array_search($step, $statusSteps, true) < array_search($currentStatus, $statusSteps, true)) {
+                $stepClass = 'completed';
+            }
+            ?>
+            <div class="order-status-step order-status-step-<?= $stepClass; ?>">
+                <div class="order-status-dot"></div>
+                <div class="order-status-text"><?= encode($stepLabel); ?></div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if (!empty($order['tracking'])): ?>
+        <div class="order-tracking-summary">
+            <?php $latestTracking = end($order['tracking']); ?>
+            <div class="order-info-row">
+                <span class="order-info-label">Latest update</span>
+                <span class="order-info-value">
+                    <?= encode($latestTracking['status']); ?>
+                    <?php if (!empty($latestTracking['location'])): ?>
+                        • <?= encode($latestTracking['location']); ?>
+                    <?php endif; ?>
+                    <span style="display:block; font-size:0.8rem; color:var(--color-text-muted);">
+                        <?= encode($latestTracking['tracking_date']); ?>
+                    </span>
+                </span>
+            </div>
+        </div>
+    <?php endif; ?>
+</section>
+
+<section class="panel">
+    <h2 style="margin-top: 0;">Shipping Information</h2>
+    <div class="order-shipping-info">
+        <div class="order-info-row">
+            <span class="order-info-label">Recipient</span>
+            <span class="order-info-value"><?= encode($order['shipping_name']); ?></span>
+        </div>
+        <div class="order-info-row">
+            <span class="order-info-label">Phone</span>
+            <span class="order-info-value"><?= encode($order['shipping_phone']); ?></span>
+        </div>
+        <div class="order-info-row">
+            <span class="order-info-label">Address</span>
+            <span class="order-info-value"><?= nl2br(encode($order['shipping_address'])); ?></span>
         </div>
     </div>
 </section>
+<?php endif; ?>
 
 <section class="panel">
     <h2 style="margin-top: 0;">Order Items</h2>
@@ -41,24 +119,6 @@
                 </div>
             </div>
         <?php endforeach; ?>
-    </div>
-</section>
-
-<section class="panel">
-    <h2 style="margin-top: 0;">Shipping Information</h2>
-    <div class="order-shipping-info">
-        <div class="order-info-row">
-            <span class="order-info-label">Recipient</span>
-            <span class="order-info-value"><?= encode($order['shipping_name']); ?></span>
-        </div>
-        <div class="order-info-row">
-            <span class="order-info-label">Phone</span>
-            <span class="order-info-value"><?= encode($order['shipping_phone']); ?></span>
-        </div>
-        <div class="order-info-row">
-            <span class="order-info-label">Address</span>
-            <span class="order-info-value"><?= nl2br(encode($order['shipping_address'])); ?></span>
-        </div>
     </div>
 </section>
 
@@ -122,81 +182,155 @@
     </div>
 </section>
 
-<?php if (!empty($order['payments'])): ?>
 <section class="panel">
-    <h2 style="margin-top: 0;">Payment Information</h2>
+    <h2 style="margin-top: 0;">Payment Method</h2>
     <div class="order-shipping-info">
-        <?php 
-        $payLaterPayments = [];
-        $otherPayments = [];
-        foreach ($order['payments'] as $payment) {
-            if ($payment['payment_method'] === 'PayLater') {
-                $payLaterPayments[] = $payment;
-            } else {
-                $otherPayments[] = $payment;
-            }
-        }
-        ?>
-        
-        <?php if (!empty($otherPayments)): ?>
-            <?php foreach ($otherPayments as $payment): ?>
-                <div class="order-info-row">
-                    <span class="order-info-label">Payment Method</span>
-                    <span class="order-info-value">
-                        <?= encode($payment['payment_method']); ?>
-                    </span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label">Amount</span>
-                    <span class="order-info-value">RM <?= number_format($payment['amount'], 2); ?></span>
-                </div>
-                <?php if (!empty($payment['transaction_ref'])): ?>
+                <?php 
+                $payLaterPayments = [];
+                $otherPayments = [];
+                foreach ($order['payments'] as $payment) {
+                    if ($payment['payment_method'] === 'PayLater') {
+                        $payLaterPayments[] = $payment;
+                    } else {
+                        $otherPayments[] = $payment;
+                    }
+                }
+                ?>
+                
+                <?php if (!empty($otherPayments)): ?>
+                    <?php foreach ($otherPayments as $payment): ?>
+                        <div class="order-info-row">
+                            <span class="order-info-label">Payment Method</span>
+                            <span class="order-info-value">
+                                <?= encode($payment['payment_method']); ?>
+                            </span>
+                        </div>
+                        <div class="order-info-row">
+                            <span class="order-info-label">Amount</span>
+                            <span class="order-info-value">RM <?= number_format($payment['amount'], 2); ?></span>
+                        </div>
+                        <?php if (!empty($payment['transaction_ref'])): ?>
+                            <div class="order-info-row">
+                                <span class="order-info-label">Transaction Reference</span>
+                                <span class="order-info-value"><?= encode($payment['transaction_ref']); ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($payment !== end($otherPayments)): ?>
+                            <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+                
+                <?php if (!empty($payLaterPayments)): ?>
+                    <?php if (!empty($otherPayments)): ?>
+                        <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
+                    <?php endif; ?>
                     <div class="order-info-row">
-                        <span class="order-info-label">Transaction Reference</span>
-                        <span class="order-info-value"><?= encode($payment['transaction_ref']); ?></span>
+                        <span class="order-info-label">Payment Method</span>
+                        <span class="order-info-value">PayLater</span>
+                    </div>
+                    <?php if (count($payLaterPayments) > 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
+                        <div class="order-info-row">
+                            <span class="order-info-label">PayLater Plan</span>
+                            <span class="order-info-value">
+                                <?= count($payLaterPayments); ?> instalments (<?= $payLaterPayments[0]['tenure_months']; ?> months)
+                            </span>
+                        </div>
+                    <?php elseif (count($payLaterPayments) === 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
+                        <div class="order-info-row">
+                            <span class="order-info-label">PayLater Plan</span>
+                            <span class="order-info-value">
+                                1 instalment (<?= $payLaterPayments[0]['tenure_months']; ?> month)
+                            </span>
+                        </div>
+                    <?php else: ?>
+                        <div class="order-info-row">
+                            <span class="order-info-label">PayLater Plan</span>
+                            <span class="order-info-value">
+                                <?= count($payLaterPayments); ?> instalment<?= count($payLaterPayments) > 1 ? 's' : ''; ?>
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                    <div style="margin-top: 1rem;">
+                        <a href="?module=bills&action=index" class="btn secondary">See more in PayLater</a>
                     </div>
                 <?php endif; ?>
-                <?php if ($payment !== end($otherPayments)): ?>
-                    <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
-                <?php endif; ?>
-            <?php endforeach; ?>
-        <?php endif; ?>
-        
-        <?php if (!empty($payLaterPayments)): ?>
-            <?php if (!empty($otherPayments)): ?>
-                <div style="height: 1px; background: var(--color-border); margin: 0.75rem 0;"></div>
-            <?php endif; ?>
+    </div>
+    </section>
+
+<section class="panel">
+    <h2 style="margin-top: 0;">Comment</h2>
+    <?php if (strtolower($order['status']) !== 'completed'): ?>
+        <div class="order-shipping-info">
             <div class="order-info-row">
-                <span class="order-info-label">Payment Method</span>
-                <span class="order-info-value">PayLater</span>
+                <span class="order-info-value">
+                    <em>You can leave product ratings and comments once this order is completed.</em>
+                </span>
             </div>
-            <?php if (count($payLaterPayments) > 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
+        </div>
+    <?php else: ?>
+        <div class="order-shipping-info">
+            <?php foreach ($order['items'] as $item): ?>
                 <div class="order-info-row">
-                    <span class="order-info-label">PayLater Plan</span>
+                    <span class="order-info-label"><?= encode($item['name']); ?></span>
                     <span class="order-info-value">
-                        <?= count($payLaterPayments); ?> instalments (<?= $payLaterPayments[0]['tenure_months']; ?> months)
+                        <?php if (!empty($item['user_review'])): ?>
+                            <div class="order-review-existing">
+                                <span class="rating-stars readonly">
+                                    <?php for ($i = 1; $i <= 5; $i++): ?>
+                                        <i class="fas fa-star<?= $i <= (int)$item['user_review']['rating'] ? ' filled' : ''; ?>"></i>
+                                    <?php endfor; ?>
+                                </span>
+                                <p style="margin: 0.25rem 0 0;"><?= nl2br(encode($item['user_review']['comment'])); ?></p>
+                            </div>
+                        <?php else: ?>
+                            <form method="post" action="?module=orders&action=add_review" class="order-review-form">
+                                <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
+                                <input type="hidden" name="product_id" value="<?= $item['product_id']; ?>">
+                                <?php $baseId = 'rating-' . $order['id'] . '-' . $item['product_id']; ?>
+                                <div class="rating-stars">
+                                    <?php for ($i = 5; $i >= 1; $i--): ?>
+                                        <?php $inputId = $baseId . '-' . $i; ?>
+                                        <input type="radio" id="<?= $inputId; ?>" name="rating" value="<?= $i; ?>" <?= $i === 5 ? 'checked' : ''; ?>>
+                                        <label for="<?= $inputId; ?>"><i class="fas fa-star"></i></label>
+                                    <?php endfor; ?>
+                                </div>
+                                <label style="margin-top:0.35rem; display:block;">
+                                    <span style="display:block; font-size:0.85rem; margin-bottom:0.25rem;">Comment</span>
+                                    <textarea name="comment" rows="2" required></textarea>
+                                </label>
+                                <button type="submit" class="btn small secondary" style="margin-top:0.35rem;">Submit review</button>
+                            </form>
+                        <?php endif; ?>
                     </span>
                 </div>
-            <?php elseif (count($payLaterPayments) === 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
-                <div class="order-info-row">
-                    <span class="order-info-label">PayLater Plan</span>
-                    <span class="order-info-value">
-                        1 instalment (<?= $payLaterPayments[0]['tenure_months']; ?> month)
-                    </span>
-                </div>
-            <?php else: ?>
-                <div class="order-info-row">
-                    <span class="order-info-label">PayLater Plan</span>
-                    <span class="order-info-value">
-                        <?= count($payLaterPayments); ?> instalment<?= count($payLaterPayments) > 1 ? 's' : ''; ?>
-                    </span>
-                </div>
-            <?php endif; ?>
-            <div style="margin-top: 1rem;">
-                <a href="?module=bills&action=index" class="btn secondary">See more in PayLater</a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+</section>
+
+<?php if (!empty($order['tracking']) && req('action') !== 'admin_detail'): ?>
+<section class="panel">
+    <h2 style="margin-top: 0;">Tracking History</h2>
+    <div class="order-shipping-info">
+        <?php foreach ($order['tracking'] as $tracking): ?>
+            <div class="order-info-row">
+                <span class="order-info-label"><?= encode($tracking['tracking_date']); ?></span>
+                <span class="order-info-value">
+                    <strong><?= encode($tracking['status']); ?></strong>
+                    <?php if (!empty($tracking['location'])): ?>
+                        • <?= encode($tracking['location']); ?>
+                    <?php endif; ?>
+                    <?php if (!empty($tracking['remarks'])): ?>
+                        <span style="display:block; font-size:0.85rem; color:var(--color-text-muted);">
+                            <?= nl2br(encode($tracking['remarks'])); ?>
+                        </span>
+                    <?php endif; ?>
+                </span>
             </div>
-        <?php endif; ?>
+        <?php endforeach; ?>
     </div>
 </section>
 <?php endif; ?>
+</div>
 

@@ -169,6 +169,20 @@ class Order
         $stm->execute([$id]);
         $order['items'] = $stm->fetchAll();
 
+        // Attach existing reviews per item for the current user (if logged in)
+        if (auth_id()) {
+            $reviewModel = new \App\Models\Review();
+            foreach ($order['items'] as &$item) {
+                $item['user_review'] = $reviewModel->findForUserAndOrderItem(auth_id(), (int)$item['product_id'], $id);
+            }
+            unset($item);
+        }
+
+        // Tracking history
+        $stm = $this->db->prepare('SELECT * FROM tracking_details WHERE order_id = ? ORDER BY tracking_date ASC, id ASC');
+        $stm->execute([$id]);
+        $order['tracking'] = $stm->fetchAll();
+
         // Get voucher used for this order
         $stm = $this->db->prepare('SELECT uv.*, v.code, v.name, v.type, v.value, v.max_discount FROM user_vouchers uv INNER JOIN vouchers v ON v.id = uv.voucher_id WHERE uv.order_id = ? LIMIT 1');
         $stm->execute([$id]);
@@ -300,5 +314,19 @@ class Order
     {
         $stm = $this->db->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([$status, $id]);
+    }
+
+    public function addTracking(int $orderId, string $status, ?string $location = null, ?string $remarks = null): void
+    {
+        $stm = $this->db->prepare(
+            'INSERT INTO tracking_details (order_id, status, location, remarks) VALUES (?, ?, ?, ?)'
+        );
+        $stm->execute([$orderId, $status, $location, $remarks]);
+    }
+
+    public function deleteTracking(int $trackingId, int $orderId): void
+    {
+        $stm = $this->db->prepare('DELETE FROM tracking_details WHERE id = ? AND order_id = ?');
+        $stm->execute([$trackingId, $orderId]);
     }
 }

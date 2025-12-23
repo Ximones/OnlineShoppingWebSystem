@@ -1004,6 +1004,81 @@ main.container {
     gap: 1rem;
 }
 
+.order-detail-header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+}
+
+.order-detail-buttons .btn.small {
+    padding: 0.25rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+.order-status-timeline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.order-status-step {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+}
+
+.order-status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    border: 2px solid var(--color-border-soft);
+    background: #fff;
+}
+
+.order-status-step-completed .order-status-dot {
+    background: #34c759;
+    border-color: #34c759;
+}
+
+.order-status-step-current .order-status-dot {
+    background: #0071e3;
+    border-color: #0071e3;
+}
+
+.order-status-step-completed .order-status-text,
+.order-status-step-current .order-status-text {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.order-tracking-summary {
+    margin-top: 0.75rem;
+}
+
+.order-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+    align-items: stretch;
+}
+
+.order-detail-grid .panel {
+    margin-bottom: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 900px) {
+    .order-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .order-items-list {
     display: flex;
     flex-direction: column;
@@ -1055,6 +1130,60 @@ main.container {
     font-weight: 600;
     color: var(--color-text);
     white-space: nowrap;
+}
+
+.order-detail-review {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+.order-review-form textarea {
+    width: 100%;
+    resize: vertical;
+}
+
+.rating-stars {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 0.15rem;
+}
+
+.rating-stars input[type="radio"] {
+    display: none;
+}
+
+.rating-stars label {
+    cursor: pointer;
+    color: #ccc;
+    font-size: 1.1rem;
+}
+
+.rating-stars label i {
+    pointer-events: none;
+}
+
+.rating-stars input[type="radio"]:checked ~ label i,
+.rating-stars label:hover i,
+.rating-stars label:hover ~ label i {
+    color: #f5a623;
+}
+
+.rating-stars.readonly label {
+    cursor: default;
+}
+
+.rating-stars.readonly i {
+    color: #ccc;
+}
+
+.rating-stars.readonly i.filled {
+    color: #f5a623;
+}
+
+/* Readonly stars should be in normal left-to-right order */
+.rating-stars.readonly {
+    flex-direction: row;
 }
 
 .order-shipping-info {
@@ -1330,7 +1459,8 @@ main.container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 0.5rem;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 .product-card-footer .favorite-toggle {
@@ -1341,14 +1471,22 @@ main.container {
     display: inline-block;
 }
 
+.product-card-footer .btn.small {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+}
+
 .product-detail .action-buttons-wrapper {
     display: flex;
-    gap: 10px;
+    gap: 12px;
 }
 
 .product-detail .action-buttons-wrapper .btn {
-    flex-grow: 1;
+    flex: 1 1 0;
     text-align: center;
+    padding-top: 0.9rem;
+    padding-bottom: 0.9rem;
+    font-size: 0.95rem;
 }
 
 .product-detail .action-buttons-wrapper .favorite-toggle {
@@ -2081,7 +2219,7 @@ form textarea[readonly] {
     gap: 0.5rem;
     padding: 0.75rem 1.2rem;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .product-features {
@@ -2107,6 +2245,42 @@ form textarea[readonly] {
 .feature-badge i {
     color: var(--color-accent);
     font-size: 1.1rem;
+}
+
+.product-reviews {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.product-review-item {
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--color-border-soft);
+    background: var(--color-bg-soft);
+    font-size: 0.9rem;
+}
+
+.product-review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.product-review-rating {
+    color: #f5a623;
+    letter-spacing: 0.05em;
+}
+
+.product-review-comment {
+    margin: 0.2rem 0 0.35rem;
+}
+
+.product-review-meta {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
 }
 
 @media (max-width: 968px) {

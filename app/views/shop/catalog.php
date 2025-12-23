@@ -98,10 +98,17 @@ $productPhotoModel = new ProductPhoto();
                     $iconType = $isFavorited ? 'fas' : 'far';
                     $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
                 ?>
-                <span class="favorite-toggle" data-product-id="<?= $product['id']; ?>" data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>">
-                    <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
-                </span>
-                <a class="btn secondary" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                <div class="product-card-footer">
+                    <form method="post" action="?module=cart&action=add" style="margin:0;">
+                        <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
+                        <input type="hidden" name="quantity" value="1">
+                        <button type="submit" class="btn primary btn small add-to-cart-btn">Add to Cart</button>
+                    </form>
+                    <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                    <span class="favorite-toggle" data-product-id="<?= $product['id']; ?>" data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>">
+                        <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
+                    </span>
+                </div>
             </article>
         <?php endforeach; ?>
     <?php else: ?>

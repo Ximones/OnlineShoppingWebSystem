@@ -133,7 +133,10 @@ class ShopController extends Controller
         if ($user) {
             $isFavorited = $this->favorites->checkFavorite($user['id'], $product['id']);
         }
+
+        $reviewModel = new \App\Models\Review();
+        $reviews = $reviewModel->forProduct($id);
         
-        $this->render('shop/detail', compact('product', 'photos', 'isFavorited'));
+        $this->render('shop/detail', compact('product', 'photos', 'isFavorited', 'reviews'));
     }
 }

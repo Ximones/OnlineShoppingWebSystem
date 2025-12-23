@@ -93,6 +93,10 @@ class BillController extends Controller
             $transactionRef = 'Stripe-' . $sessionId; // You can just use session ID as ref
             $this->payments->markPaid($paymentId, $transactionRef);
 
+            // Update payment method label based on how Stripe was paid (card, FPX, etc.)
+            $methodLabel = $stripe->getPaymentMethodLabel($sessionId);
+            $this->payments->updateMethodLabel($paymentId, $methodLabel);
+
             // Optional: Update Order Status if needed
             $payment = $this->payments->findForUser(auth_id(), $paymentId);
             if ($payment) {

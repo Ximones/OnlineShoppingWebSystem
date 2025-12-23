@@ -45,6 +45,12 @@ class Payment
         $stm->execute([$transactionRef, $paymentId]);
     }
 
+    public function updateMethodLabel(int $paymentId, string $label): void
+    {
+        $stm = $this->db->prepare('UPDATE payments SET payment_method = ? WHERE id = ?');
+        $stm->execute([$label, $paymentId]);
+    }
+
     public function pendingPayLaterForUser(int $userId): array
     {
         $sql = 'SELECT p.*, o.user_id, o.status AS order_status
@@ -88,10 +94,9 @@ class Payment
         $sql = 'SELECT p.*, o.user_id, o.status AS order_status
                 FROM payments p
                 INNER JOIN orders o ON o.id = p.order_id
-                WHERE o.user_id = ? AND p.payment_method = "PayLater" 
-                AND p.status = "completed" 
-                AND p.billing_due_date IS NOT NULL 
-                AND p.billing_due_date < CURDATE()
+                WHERE o.user_id = ?
+                  AND p.payment_method = "PayLater"
+                  AND p.status = "completed"
                 ORDER BY p.payment_date DESC';
         $stm = $this->db->prepare($sql);
         $stm->execute([$userId]);

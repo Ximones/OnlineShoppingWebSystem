@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
+use Stripe\PaymentIntent;
 
 class StripeService
 {
@@ -47,5 +48,36 @@ class StripeService
     {
         $session = Session::retrieve($sessionId);
         return $session->amount_total / 100; // Convert cents to currency unit
+    }
+
+    /**
+     * Get a human-friendly payment method label (e.g. "Stripe (Card)", "Stripe (Online Banking FPX)")
+     */
+    public function getPaymentMethodLabel(string $sessionId): string
+    {
+        try {
+            $session = Session::retrieve($sessionId);
+            if (!$session->payment_intent) {
+                return 'Stripe';
+            }
+
+            /** @var PaymentIntent $intent */
+            $intent = PaymentIntent::retrieve($session->payment_intent);
+            $charges = $intent->charges->data ?? [];
+            if (empty($charges)) {
+                return 'Stripe';
+            }
+
+            $details = $charges[0]->payment_method_details;
+            $type = $details->type ?? null;
+
+            return match ($type) {
+                'card' => 'Stripe (Card)',
+                'fpx'  => 'Stripe (Online Banking FPX)',
+                default => 'Stripe',
+            };
+        } catch (\Throwable $e) {
+            return 'Stripe';
+        }
     }
 }

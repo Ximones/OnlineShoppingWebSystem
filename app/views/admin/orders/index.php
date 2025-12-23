@@ -23,7 +23,7 @@
             <th>Total</th>
             <th>Status</th>
             <th>Created</th>
-            <th></th>
+            <th>Actions</th>
         </tr>
         </thead>
         <tbody>
@@ -34,7 +34,20 @@
                 <td>RM <?= number_format($order['total_amount'], 2); ?></td>
                 <td><?= encode(ucfirst($order['status'])); ?></td>
                 <td><?= encode($order['created_at']); ?></td>
-                <td><a class="btn small" href="?module=orders&action=detail&id=<?= $order['id']; ?>">View</a></td>
+                <td>
+                    <a class="btn small" href="?module=orders&action=admin_detail&id=<?= $order['id']; ?>">View</a>
+                    <form method="post" action="?module=orders&action=update_status" style="display: inline-flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
+                        <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
+                        <select name="status" style="font-size: 0.8rem; padding: 0.15rem 0.3rem;">
+                            <?php foreach ($GLOBALS['_order_statuses'] as $code => $text): ?>
+                                <option value="<?= $code; ?>" <?= strtolower($order['status']) === $code ? 'selected' : ''; ?>>
+                                    <?= $text; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button class="btn small secondary" type="submit">Update</button>
+                    </form>
+                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>

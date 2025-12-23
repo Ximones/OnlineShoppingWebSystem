@@ -62,6 +62,10 @@
                     <i class="fas fa-shopping-cart"></i>
                     Add to Cart
                 </button>
+                <button type="submit" class="btn secondary buy-now-btn" formaction="?module=cart&action=buy_now">
+                    <i class="fas fa-bolt"></i>
+                    Buy Now
+                </button>
 
                 <?php
                 $isFavorited = $isFavorited ?? false;
@@ -146,6 +150,28 @@
                 <span>Professional Installation Available</span>
             </div>
         </div>
+
+        <?php if (!empty($reviews)): ?>
+            <div class="product-reviews">
+                <h3 class="specs-title">Customer Reviews</h3>
+                <?php foreach ($reviews as $review): ?>
+                    <div class="product-review-item">
+                        <div class="product-review-header">
+                            <strong><?= encode($review['user_name']); ?></strong>
+                            <span class="product-review-rating">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <?= $i <= (int)$review['rating'] ? '★' : '☆'; ?>
+                                <?php endfor; ?>
+                            </span>
+                        </div>
+                        <p class="product-review-comment"><?= nl2br(encode($review['comment'])); ?></p>
+                        <div class="product-review-meta">
+                            <?= encode($review['created_at']); ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 

@@ -73,6 +73,24 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    public function buy_now(): void
+    {
+        $this->requireAuth();
+        if (is_post()) {
+            $productId = (int) post('product_id');
+            $quantity = max(1, (int) post('quantity', 1));
+            $product = $this->products->find($productId);
+            if (!$product) {
+                flash('danger', 'Product not found.');
+                redirect('?module=shop&action=catalog');
+            }
+            $cartId = $this->cart->activeCartId(auth_id());
+            $this->cart->addItem($cartId, $productId, $quantity);
+            unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
+        }
+        redirect('?module=cart&action=checkout');
+    }
+
     public function update(): void
     {
         $this->requireAuth();
@@ -482,7 +500,8 @@ class CartController extends Controller
         if ($stripe->isPaid($sessionId)) {
             // 1. Record Payment
             $amountPaid = $stripe->getAmount($sessionId);
-            $this->payments->create($orderId, 'Stripe', $amountPaid, $amountPaid, 'completed');
+            $methodLabel = $stripe->getPaymentMethodLabel($sessionId);
+            $this->payments->create($orderId, $methodLabel, $amountPaid, $amountPaid, 'completed');
 
             // 2. Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
