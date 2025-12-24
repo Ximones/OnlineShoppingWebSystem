@@ -6,9 +6,12 @@ class Router {
         'auth' => 'AuthController',
         'profile' => 'ProfileController',
         'game' => 'GameController',
+        'admin' => 'AdminDashboardController',
         'admin.members' => 'AdminMemberController',
         'admin.products' => 'AdminProductController',
+        'admin.categories' => 'AdminCategoryController',
         'admin.vouchers' => 'AdminVoucherController',
+        'admin.orders' => 'AdminOrderController',
         'cart' => 'CartController',
         'orders' => 'OrderController',
         'vouchers' => 'VoucherController',
@@ -21,8 +24,11 @@ class Router {
         $action = req('action', 'home');
 
         $controllerKey = $module;
-        if ($module === 'admin' && req('resource')) {
-            $controllerKey .= '.' . req('resource');
+        if ($module === 'admin') {
+            $resource = req('resource');
+            if ($resource) {
+                $controllerKey .= '.' . $resource;
+            }
         }
 
         $controllerName = $this->routes[$controllerKey] ?? $this->routes['shop'];

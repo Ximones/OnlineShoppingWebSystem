@@ -17,15 +17,7 @@
                 <a href="?module=profile&action=index">Profile</a>
 
                 <?php if (is_admin()): ?>
-                    <div class="dropdown">
-                        <button class="dropdown-toggle">Admin</button>
-                        <div class="dropdown-menu">
-                            <a href="?module=admin&resource=members&action=index">Members</a>
-                            <a href="?module=admin&resource=products&action=index">Products</a>
-                            <a href="?module=admin&resource=vouchers&action=index">Vouchers</a>
-                            <a href="?module=orders&action=admin">Orders</a>
-                        </div>
-                    </div>
+                    <a href="?module=admin&action=dashboard">Admin Dashboard</a>
                 <?php endif; ?>
 
                 <a href="?module=auth&action=logout">Logout</a>

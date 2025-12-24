@@ -772,7 +772,6 @@ main.container {
 
 .btn.primary,
 .btn.secondary {
-    /* share the same base look; kept for semantic class names */
 }
 
 .btn.danger {

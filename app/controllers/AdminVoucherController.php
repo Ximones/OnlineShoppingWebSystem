@@ -2,10 +2,10 @@
 
 namespace App\Controllers;
 
-use App\Core\Controller;
+use App\Core\AdminController;
 use App\Models\Voucher;
 
-class AdminVoucherController extends Controller
+class AdminVoucherController extends AdminController
 {
     private Voucher $vouchers;
 

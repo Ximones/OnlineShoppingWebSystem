@@ -22,14 +22,14 @@ $allPhotos = $allPhotos ?? [];
 
             <div class="store-top-row">
                 <?php foreach ($categories as $category): ?>
-                    <?php
-                    $slug = strtolower(str_replace(' ', '-', $category['name']));
-                    $iconPath = 'public/images/store/' . $slug . '.png';
-                    ?>
                     <a class="store-top-item"
                         href="?module=shop&action=catalog&category_id=<?= $category['id']; ?>">
                         <div class="store-top-icon">
-                            <img src="<?= asset($iconPath); ?>" alt="<?= encode($category['name']); ?>">
+                            <?php if (!empty($category['image_url'])): ?>
+                                <img src="<?= encode($category['image_url']); ?>" alt="<?= encode($category['name']); ?>">
+                            <?php else: ?>
+                                <span style="color: #999; font-size: 2rem;">📁</span>
+                            <?php endif; ?>
                         </div>
                         <span class="store-top-label"><?= encode($category['name']); ?></span>
                     </a>

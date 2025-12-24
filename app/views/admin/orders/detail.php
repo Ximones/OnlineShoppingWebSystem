@@ -19,7 +19,7 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
             <div class="order-status-badge order-status-<?= strtolower($order['status']); ?>">
                 <?= encode(ucfirst($order['status'])); ?>
             </div>
-            <form method="post" action="?module=orders&action=update_status" style="display:flex; gap:0.4rem; align-items:center;">
+            <form method="post" action="?module=admin&resource=orders&action=updateStatus" style="display:flex; gap:0.4rem; align-items:center;">
                 <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
                 <select name="status" style="font-size: 0.85rem; padding: 0.15rem 0.3rem;">
                     <?php foreach ($GLOBALS['_order_statuses'] as $code => $text): ?>
@@ -90,7 +90,7 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                         </span>
                     <?php endif; ?>
                 </span>
-                <form method="post" action="?module=orders&action=delete_tracking" style="margin-top:0.25rem;">
+                <form method="post" action="?module=admin&resource=orders&action=deleteTracking" style="margin-top:0.25rem;">
                     <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
                     <input type="hidden" name="tracking_id" value="<?= $tracking['id']; ?>">
                     <button type="submit" class="btn small secondary" onclick="return confirm('Delete this tracking entry?');">
@@ -101,7 +101,7 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
         <?php endforeach; ?>
     </div>
 
-    <form method="post" action="?module=orders&action=add_tracking" style="margin-top: 1rem;">
+    <form method="post" action="?module=admin&resource=orders&action=addTracking" style="margin-top: 1rem;">
         <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
         <h3 style="margin-top: 0;">Add Tracking Entry</h3>
         <div class="order-shipping-info">

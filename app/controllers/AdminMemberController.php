@@ -2,10 +2,10 @@
 
 namespace App\Controllers;
 
-use App\Core\Controller;
+use App\Core\AdminController;
 use App\Models\User;
 
-class AdminMemberController extends Controller
+class AdminMemberController extends AdminController
 {
     private User $users;
 

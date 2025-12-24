@@ -2,13 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Core\Controller;
+use App\Core\AdminController;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductPhoto;
 use RuntimeException;
 
-class AdminProductController extends Controller
+class AdminProductController extends AdminController
 {
     private Product $products;
     private Category $categories;

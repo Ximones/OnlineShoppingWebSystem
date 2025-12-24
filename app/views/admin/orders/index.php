@@ -1,8 +1,9 @@
 <?php $title = 'Order Maintenance'; ?>
 <section class="panel">
     <form method="get" class="form-inline">
-        <input type="hidden" name="module" value="orders">
-        <input type="hidden" name="action" value="admin">
+        <input type="hidden" name="module" value="admin">
+        <input type="hidden" name="resource" value="orders">
+        <input type="hidden" name="action" value="index">
         <input type="text" name="keyword" value="<?= encode($filters['keyword']); ?>" placeholder="Search name/email/order#">
         <select name="status">
             <option value="">Any Status</option>
@@ -35,8 +36,8 @@
                 <td><?= encode(ucfirst($order['status'])); ?></td>
                 <td><?= encode($order['created_at']); ?></td>
                 <td>
-                    <a class="btn small" href="?module=orders&action=admin_detail&id=<?= $order['id']; ?>">View</a>
-                    <form method="post" action="?module=orders&action=update_status" style="display: inline-flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
+                    <a class="btn small" href="?module=admin&resource=orders&action=detail&id=<?= $order['id']; ?>">View</a>
+                    <form method="post" action="?module=admin&resource=orders&action=updateStatus" style="display: inline-flex; gap: 0.25rem; align-items: center; margin-left: 0.5rem;">
                         <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
                         <select name="status" style="font-size: 0.8rem; padding: 0.15rem 0.3rem;">
                             <?php foreach ($GLOBALS['_order_statuses'] as $code => $text): ?>
