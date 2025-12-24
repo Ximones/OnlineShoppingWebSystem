@@ -19,23 +19,49 @@ class AuthController extends Controller
 
     public function login(): void
     {
+        
         if (is_post() && validate([
             'email' => ['required' => 'Email is required.', 'email' => 'Email format invalid.'],
             'password' => ['required' => 'Password is required.'],
-        ])) {
-            $user = $this->users->findByEmail(post('email'));
-            if (!$user || !password_verify(post('password'), $user['password_hash'])) {
-                flash('danger', 'Invalid credentials.');
-            } else {
+            ])) {
+                
+                $user = $this->users->findByEmail(post('email'));
+
+        if ($user) {
+
+            if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
+                $remaining = strtotime($user['lockout_until']) - time();
+                flash('danger', "Too many attempts. Locked for another $remaining seconds.");
+                $this->render('auth/login');
+                return;
+            }
+
+            if (password_verify(post('password'), $user['password_hash'])) {
+                $this->users->resetLockout($user['id']);
                 auth_login($user);
                 flash('success', 'Welcome back, ' . $user['name'] . '!');
                 redirect('?module=shop&action=home');
-            }
-        }
+            } else {
+                $newAttempts = $user['login_attempts'] + 1;
+                $lockoutTime = null;
 
-        $this->render('auth/login');
+                if ($newAttempts >= 3) {
+                    $lockoutTime = date('Y-m-d H:i:s', strtotime('+1 minute'));
+                    flash('danger', 'Account locked for 1 minute due to 3 failed attempts.');
+                } else {
+                    $remaining = 3 - $newAttempts;
+                    flash('danger', "Invalid credentials. $remaining attempts remaining.");
+                }
+
+                $this->users->updateLockout($user['id'], $newAttempts, $lockoutTime);
+            }
+        } else {
+            flash('danger', 'Invalid credentials.');
+        }
     }
 
+    $this->render('auth/login');
+}
     public function logout(): void
     {
         auth_logout();

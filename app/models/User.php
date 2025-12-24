@@ -211,6 +211,18 @@ class User
         $stm->execute($params);
         return $stm->fetchAll();
     }
+    
+    public function updateLockout(int $userId, int $attempts, ?string $lockoutUntil = null): void
+    {  
+        $stmt = $this->db->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
+        $stmt->execute([$attempts, $lockoutUntil, $userId]);
+    }
+    
+    public function resetLockout(int $userId): void
+    { 
+        $stmt = $this->db->prepare("UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?");
+        $stmt->execute([$userId]);
+    }
 }
 
 
