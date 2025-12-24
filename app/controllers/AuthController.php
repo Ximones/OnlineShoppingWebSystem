@@ -28,6 +28,12 @@ class AuthController extends Controller
                 $user = $this->users->findByEmail(post('email'));
 
         if ($user) {
+            // Check if user is blocked
+            if (($user['status'] ?? 'active') === 'blocked') {
+                flash('danger', 'Your account has been blocked. Please contact support.');
+                $this->render('auth/login');
+                return;
+            }
 
             if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
                 $remaining = strtotime($user['lockout_until']) - time();

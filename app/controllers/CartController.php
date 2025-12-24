@@ -110,6 +110,19 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    public function batchRemove(): void
+    {
+        $this->requireAuth();
+        $itemIds = array_map('intval', post('item_ids', []));
+        if (empty($itemIds)) {
+            flash('danger', 'No items selected.');
+            redirect('?module=cart&action=index');
+        }
+        $this->cart->removeItems($itemIds);
+        flash('success', count($itemIds) . ' item(s) removed.');
+        redirect('?module=cart&action=index');
+    }
+
     public function checkout(): void
     {
         $this->requireAuth();

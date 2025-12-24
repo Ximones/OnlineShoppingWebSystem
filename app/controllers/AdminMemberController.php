@@ -59,6 +59,65 @@ class AdminMemberController extends AdminController
         }
         $this->render('admin/members/create');
     }
+
+    public function delete(): void
+    {
+        $this->requireAdmin();
+        $id = (int) post('id');
+        try {
+            $this->users->delete($id);
+            flash('success', 'Member deleted.');
+        } catch (\RuntimeException $ex) {
+            flash('danger', $ex->getMessage());
+        }
+        redirect('?module=admin&resource=members&action=index');
+    }
+
+    public function batchDelete(): void
+    {
+        $this->requireAdmin();
+        $ids = array_map('intval', post('ids', []));
+        if (empty($ids)) {
+            flash('danger', 'No members selected.');
+            redirect('?module=admin&resource=members&action=index');
+        }
+        $failed = $this->users->batchDelete($ids);
+        $successCount = count($ids) - count($failed);
+        if ($successCount > 0) {
+            flash('success', "$successCount member(s) deleted.");
+        }
+        if (!empty($failed)) {
+            $errors = array_map(fn($f) => "Member #{$f['id']}: {$f['error']}", $failed);
+            flash('danger', implode('; ', $errors));
+        }
+        redirect('?module=admin&resource=members&action=index');
+    }
+
+    public function block(): void
+    {
+        $this->requireAdmin();
+        $id = (int) post('id');
+        try {
+            $this->users->block($id);
+            flash('success', 'Member blocked successfully.');
+        } catch (\RuntimeException $ex) {
+            flash('danger', $ex->getMessage());
+        }
+        redirect('?module=admin&resource=members&action=index');
+    }
+
+    public function unblock(): void
+    {
+        $this->requireAdmin();
+        $id = (int) post('id');
+        try {
+            $this->users->unblock($id);
+            flash('success', 'Member unblocked successfully.');
+        } catch (\RuntimeException $ex) {
+            flash('danger', $ex->getMessage());
+        }
+        redirect('?module=admin&resource=members&action=index');
+    }
 }
 
 

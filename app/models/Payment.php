@@ -109,6 +109,36 @@ class Payment
         $stm->execute([$orderId]);
         return $stm->fetchAll();
     }
+
+    public function allPayLater(array $filters = []): array
+    {
+        $sql = 'SELECT p.*, o.user_id, u.name AS user_name, u.email AS user_email, o.total_amount AS order_total
+                FROM payments p
+                INNER JOIN orders o ON o.id = p.order_id
+                INNER JOIN users u ON u.id = o.user_id
+                WHERE p.payment_method = "PayLater"';
+        
+        $params = [];
+        
+        if (!empty($filters['status'])) {
+            $sql .= ' AND p.status = ?';
+            $params[] = $filters['status'];
+        }
+        
+        if (!empty($filters['keyword'])) {
+            $sql .= ' AND (u.name LIKE ? OR u.email LIKE ? OR o.id = ?)';
+            $keyword = '%' . $filters['keyword'] . '%';
+            $params[] = $keyword;
+            $params[] = $keyword;
+            $params[] = (int) $filters['keyword'];
+        }
+
+        $sql .= ' ORDER BY p.billing_due_date ASC, p.payment_date DESC';
+        
+        $stm = $this->db->prepare($sql);
+        $stm->execute($params);
+        return $stm->fetchAll();
+    }
 }
 
 

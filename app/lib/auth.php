@@ -35,6 +35,18 @@ function require_auth(): void {
         flash('danger', 'Please login to continue.');
         redirect('?module=auth&action=login');
     }
+    
+    // Check if logged-in user is still active (not blocked)
+    $userId = auth_id();
+    if ($userId) {
+        $userModel = new \App\Models\User();
+        $user = $userModel->find($userId);
+        if ($user && ($user['status'] ?? 'active') === 'blocked') {
+            auth_logout();
+            flash('danger', 'Your account has been blocked. Please contact support.');
+            redirect('?module=auth&action=login');
+        }
+    }
 }
 
 function require_role(array $roles): void {

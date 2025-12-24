@@ -106,5 +106,25 @@ class AdminCategoryController extends AdminController
         }
         redirect('?module=admin&resource=categories&action=index');
     }
+
+    public function batchDelete(): void
+    {
+        $this->requireAdmin();
+        $ids = array_map('intval', post('ids', []));
+        if (empty($ids)) {
+            flash('danger', 'No categories selected.');
+            redirect('?module=admin&resource=categories&action=index');
+        }
+        $failed = $this->categories->batchDelete($ids);
+        $successCount = count($ids) - count($failed);
+        if ($successCount > 0) {
+            flash('success', "$successCount category(ies) deleted.");
+        }
+        if (!empty($failed)) {
+            $errors = array_map(fn($f) => "Category #{$f['id']}: {$f['error']}", $failed);
+            flash('danger', implode('; ', $errors));
+        }
+        redirect('?module=admin&resource=categories&action=index');
+    }
 }
 

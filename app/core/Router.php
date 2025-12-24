@@ -12,6 +12,7 @@ class Router {
         'admin.categories' => 'AdminCategoryController',
         'admin.vouchers' => 'AdminVoucherController',
         'admin.orders' => 'AdminOrderController',
+        'admin.paylater' => 'AdminPayLaterController',
         'cart' => 'CartController',
         'orders' => 'OrderController',
         'vouchers' => 'VoucherController',

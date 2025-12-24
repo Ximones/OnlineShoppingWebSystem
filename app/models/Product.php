@@ -152,6 +152,16 @@ class Product
         $stm->execute([$id]);
     }
 
+    public function batchDelete(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stm = $this->db->prepare("DELETE FROM products WHERE id IN ($placeholders)");
+        $stm->execute($ids);
+    }
+
     public function getTopSellers(int $limit = 5): array
     {
     $sql = "SELECT p.*, SUM(oi.quantity) as total_sold

@@ -223,6 +223,55 @@ class User
         $stmt = $this->db->prepare("UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?");
         $stmt->execute([$userId]);
     }
+
+    public function delete(int $id): void
+    {
+        $user = $this->find($id);
+        if ($user && $user['role'] === 'admin') {
+            throw new \RuntimeException('Cannot delete admin users.');
+        }
+        $stm = $this->db->prepare('DELETE FROM users WHERE id = ?');
+        $stm->execute([$id]);
+    }
+
+    public function batchDelete(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $failed = [];
+        foreach ($ids as $id) {
+            try {
+                $this->delete($id);
+            } catch (\RuntimeException $e) {
+                $failed[] = ['id' => $id, 'error' => $e->getMessage()];
+            }
+        }
+        return $failed;
+    }
+
+    public function block(int $id): void
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            throw new \RuntimeException('User not found.');
+        }
+        if ($user['role'] === 'admin') {
+            throw new \RuntimeException('Cannot block admin users.');
+        }
+        $stm = $this->db->prepare('UPDATE users SET status = "blocked", updated_at = NOW() WHERE id = ?');
+        $stm->execute([$id]);
+    }
+
+    public function unblock(int $id): void
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            throw new \RuntimeException('User not found.');
+        }
+        $stm = $this->db->prepare('UPDATE users SET status = "active", updated_at = NOW() WHERE id = ?');
+        $stm->execute([$id]);
+    }
 }
 
 

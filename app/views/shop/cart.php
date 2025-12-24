@@ -84,7 +84,7 @@
             </div>
 
             <div class="cart-actions">
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
                     <button class="btn secondary" type="submit">Update Cart</button>
                     <button
                         class="btn primary"
@@ -94,8 +94,19 @@
                     >
                         Checkout Selected
                     </button>
+                    <button
+                        class="btn danger"
+                        type="button"
+                        id="batch-delete-btn"
+                        style="display: none;"
+                        onclick="batchDeleteItems()"
+                    >
+                        Delete Selected
+                    </button>
                 </div>
             </div>
+            
+            <form id="batch-delete-form" method="post" action="?module=cart&action=batchRemove">
         </form>
         <input type="hidden" id="available-points" value="<?= $availablePoints; ?>">
     <?php endif; ?>
@@ -195,4 +206,52 @@
 
     refreshSummary();
 })();
+
+// Batch delete functionality
+function batchDeleteItems() {
+    const checkedBoxes = document.querySelectorAll('.item-select:checked');
+    const itemIds = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    if (itemIds.length === 0) {
+        alert('Please select items to delete.');
+        return;
+    }
+    
+    if (confirm('Are you sure you want to delete ' + itemIds.length + ' selected item(s)?')) {
+        const form = document.getElementById('batch-delete-form');
+        
+        // Clear any existing hidden inputs
+        form.innerHTML = '';
+        
+        // Create multiple hidden inputs for each ID
+        itemIds.forEach(id => {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = 'item_ids[]';
+            hidden.value = id;
+            form.appendChild(hidden);
+        });
+        
+        form.submit();
+    }
+}
+
+// Show/hide batch delete button based on selection
+document.addEventListener('DOMContentLoaded', function() {
+    const batchDeleteBtn = document.getElementById('batch-delete-btn');
+    const checkboxes = document.querySelectorAll('.item-select');
+    
+    function updateBatchDeleteButton() {
+        const checked = document.querySelectorAll('.item-select:checked');
+        if (batchDeleteBtn) {
+            batchDeleteBtn.style.display = checked.length > 0 ? 'inline-block' : 'none';
+        }
+    }
+    
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateBatchDeleteButton);
+    });
+    
+    updateBatchDeleteButton();
+});
 </script>

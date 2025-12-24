@@ -72,6 +72,16 @@ class Cart
         $stm->execute([$itemId]);
     }
 
+    public function removeItems(array $itemIds): void
+    {
+        if (empty($itemIds)) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+        $stm = $this->db->prepare("DELETE FROM cart_items WHERE id IN ($placeholders)");
+        $stm->execute($itemIds);
+    }
+
     public function clear(int $cartId): void
     {
         $stm = $this->db->prepare('DELETE FROM cart_items WHERE cart_id = ?');

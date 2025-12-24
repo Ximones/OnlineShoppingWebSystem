@@ -120,6 +120,19 @@ class AdminProductController extends AdminController
         redirect('?module=admin&resource=products&action=index');
     }
 
+    public function batchDelete(): void
+    {
+        $this->requireAdmin();
+        $ids = array_map('intval', post('ids', []));
+        if (empty($ids)) {
+            flash('danger', 'No products selected.');
+            redirect('?module=admin&resource=products&action=index');
+        }
+        $this->products->batchDelete($ids);
+        flash('success', count($ids) . ' product(s) deleted.');
+        redirect('?module=admin&resource=products&action=index');
+    }
+
     public function deletePhoto(): void
     {
         $this->requireAdmin();

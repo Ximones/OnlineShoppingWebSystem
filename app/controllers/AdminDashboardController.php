@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\Payment;
 use function db;
 
 class AdminDashboardController extends AdminController
@@ -15,6 +16,7 @@ class AdminDashboardController extends AdminController
     private Product $products;
     private User $users;
     private Voucher $vouchers;
+    private Payment $payments;
 
     public function __construct()
     {
@@ -22,6 +24,7 @@ class AdminDashboardController extends AdminController
         $this->products = new Product();
         $this->users = new User();
         $this->vouchers = new Voucher();
+        $this->payments = new Payment();
     }
 
     public function dashboard(): void
@@ -48,6 +51,16 @@ class AdminDashboardController extends AdminController
         // Get revenue stats
         $revenueQuery = $db->query('SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status IN ("completed", "shipped")');
         $stats['total_revenue'] = (float) $revenueQuery->fetchColumn();
+
+        // PayLater stats
+        $paylaterPendingQuery = $db->query('SELECT COUNT(*) FROM payments WHERE payment_method = "PayLater" AND status = "pending"');
+        $stats['paylater_pending'] = (int) $paylaterPendingQuery->fetchColumn();
+        
+        $paylaterTotalQuery = $db->query('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_method = "PayLater" AND status = "pending"');
+        $stats['paylater_outstanding'] = (float) $paylaterTotalQuery->fetchColumn();
+        
+        $paylaterCompletedQuery = $db->query('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_method = "PayLater" AND status = "completed"');
+        $stats['paylater_collected'] = (float) $paylaterCompletedQuery->fetchColumn();
 
         // Chart Data: Revenue over last 12 months
         $revenueByMonthQuery = $db->query("
@@ -128,6 +141,68 @@ class AdminDashboardController extends AdminController
             $membersByMonth[] = $row;
         }
 
+        // Chart Data: PayLater Outstanding Amount by Month (Last 12 Months)
+        // This shows the outstanding amount of pending bills created in each month
+        $paylaterOutstandingByMonthQuery = $db->query("
+            SELECT 
+                DATE_FORMAT(p.payment_date, '%Y-%m') as month,
+                COALESCE(SUM(p.amount), 0) as outstanding
+            FROM payments p
+            WHERE p.payment_method = 'PayLater'
+                AND p.status = 'pending'
+                AND p.payment_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(p.payment_date, '%Y-%m')
+            ORDER BY month ASC
+        ");
+        $paylaterOutstandingByMonth = [];
+        while ($row = $paylaterOutstandingByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
+            $paylaterOutstandingByMonth[] = $row;
+        }
+
+        // Chart Data: PayLater by Status
+        $paylaterByStatusQuery = $db->query("
+            SELECT status, COUNT(*) as count, COALESCE(SUM(amount), 0) as total_amount
+            FROM payments
+            WHERE payment_method = 'PayLater'
+            GROUP BY status
+        ");
+        $paylaterByStatus = [];
+        while ($row = $paylaterByStatusQuery->fetch(\PDO::FETCH_ASSOC)) {
+            $paylaterByStatus[] = $row;
+        }
+
+        // Chart Data: PayLater Collected vs Outstanding Over Time (Last 12 Months)
+        $paylaterCollectedByMonthQuery = $db->query("
+            SELECT 
+                DATE_FORMAT(p.payment_date, '%Y-%m') as month,
+                COALESCE(SUM(CASE WHEN p.status = 'completed' THEN p.amount ELSE 0 END), 0) as collected
+            FROM payments p
+            WHERE p.payment_method = 'PayLater'
+                AND p.payment_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(p.payment_date, '%Y-%m')
+            ORDER BY month ASC
+        ");
+        $paylaterCollectedByMonth = [];
+        while ($row = $paylaterCollectedByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
+            $paylaterCollectedByMonth[] = $row;
+        }
+
+        // Chart Data: PayLater by Tenure
+        $paylaterByTenureQuery = $db->query("
+            SELECT 
+                COALESCE(tenure_months, 0) as tenure,
+                COUNT(*) as count,
+                COALESCE(SUM(amount), 0) as total_amount
+            FROM payments
+            WHERE payment_method = 'PayLater'
+            GROUP BY tenure_months
+            ORDER BY tenure ASC
+        ");
+        $paylaterByTenure = [];
+        while ($row = $paylaterByTenureQuery->fetch(\PDO::FETCH_ASSOC)) {
+            $paylaterByTenure[] = $row;
+        }
+
         $this->render('admin/dashboard', compact(
             'stats', 
             'recentOrders',
@@ -135,7 +210,11 @@ class AdminDashboardController extends AdminController
             'ordersByStatus',
             'topProducts',
             'ordersOverTime',
-            'membersByMonth'
+            'membersByMonth',
+            'paylaterOutstandingByMonth',
+            'paylaterByStatus',
+            'paylaterCollectedByMonth',
+            'paylaterByTenure'
         ));
     }
 }

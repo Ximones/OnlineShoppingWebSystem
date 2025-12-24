@@ -98,6 +98,16 @@ class Voucher
         $stm = $this->db->prepare('DELETE FROM vouchers WHERE id = ?');
         $stm->execute([$id]);
     }
+
+    public function batchDelete(array $ids): void
+    {
+        if (empty($ids)) {
+            return;
+        }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stm = $this->db->prepare("DELETE FROM vouchers WHERE id IN ($placeholders)");
+        $stm->execute($ids);
+    }
 }
 
 

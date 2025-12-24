@@ -11,6 +11,7 @@
             <a href="?module=admin&resource=members&action=index">Members</a>
             <a href="?module=admin&resource=vouchers&action=index">Vouchers</a>
             <a href="?module=admin&resource=orders&action=index">Orders</a>
+            <a href="?module=admin&resource=paylater&action=index">PayLater</a>
             <a href="?module=shop&action=home">View Store</a>
             <a href="?module=auth&action=logout">Logout</a>
         </nav>

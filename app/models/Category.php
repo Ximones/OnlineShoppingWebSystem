@@ -67,6 +67,22 @@ class Category
         $stm = $this->db->prepare('DELETE FROM categories WHERE id = ?');
         $stm->execute([$id]);
     }
+
+    public function batchDelete(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        $failed = [];
+        foreach ($ids as $id) {
+            try {
+                $this->delete($id);
+            } catch (\RuntimeException $e) {
+                $failed[] = ['id' => $id, 'error' => $e->getMessage()];
+            }
+        }
+        return $failed;
+    }
 }
 
 

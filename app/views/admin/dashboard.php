@@ -59,6 +59,16 @@
         </div>
         <div style="font-size: 18px; color: #666;">Total Revenue</div>
     </div>
+
+    <!-- PayLater Pending Card -->
+    <div class="panel" style="padding: 20px; text-align: center;">
+        <div style="font-size: 36px; font-weight: bold; color: #ff9800; margin-bottom: 10px;">
+            <?= number_format($stats['paylater_pending'] ?? 0); ?>
+        </div>
+        <div style="font-size: 18px; color: #666; margin-bottom: 10px;">PayLater Pending Bills</div>
+        <div style="font-size: 14px; color: #999;">RM <?= number_format($stats['paylater_outstanding'] ?? 0, 2); ?> outstanding</div>
+        <a href="?module=admin&resource=paylater&action=index" class="btn small" style="margin-top: 10px;">View PayLater</a>
+    </div>
 </div>
 
 <!-- Charts Section -->
@@ -415,6 +425,177 @@ if (document.getElementById('topProductsChart')) {
         }
     }
 });
+}
+<?php endif; ?>
+
+// PayLater by Status Chart
+<?php if (!empty($paylaterByStatus ?? [])): ?>
+const paylaterStatusData = <?= json_encode($paylaterByStatus); ?>;
+if (document.getElementById('paylaterStatusChart')) {
+    const statusLabels = paylaterStatusData.map(item => item.status.charAt(0).toUpperCase() + item.status.slice(1));
+    const statusCounts = paylaterStatusData.map(item => parseInt(item.count));
+    const statusAmounts = paylaterStatusData.map(item => parseFloat(item.total_amount));
+    new Chart(document.getElementById('paylaterStatusChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                label: 'Number of Bills',
+                data: statusCounts,
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(153, 102, 255, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            const index = context.dataIndex;
+                            const amount = statusAmounts[index] || 0;
+                            return label + ': ' + value + ' bills (' + percentage + '%) - RM ' + amount.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+<?php endif; ?>
+
+// PayLater by Tenure Chart
+<?php if (!empty($paylaterByTenure ?? [])): ?>
+const paylaterTenureData = <?= json_encode($paylaterByTenure); ?>;
+if (document.getElementById('paylaterTenureChart')) {
+    const tenureLabels = paylaterTenureData.map(item => item.tenure + ' months');
+    const tenureAmounts = paylaterTenureData.map(item => parseFloat(item.total_amount));
+    new Chart(document.getElementById('paylaterTenureChart'), {
+        type: 'bar',
+        data: {
+            labels: tenureLabels,
+            datasets: [{
+                label: 'Total Amount (RM)',
+                data: tenureAmounts,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: true, position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'RM ' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'RM ' + value.toFixed(0);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+<?php endif; ?>
+
+// PayLater Collected vs Outstanding Over Time
+<?php if (!empty($paylaterOutstandingByMonth ?? []) || !empty($paylaterCollectedByMonth ?? [])): ?>
+const paylaterOutstandingData = <?= json_encode($paylaterOutstandingByMonth ?? []); ?>;
+const paylaterCollectedData = <?= json_encode($paylaterCollectedByMonth ?? []); ?>;
+if (document.getElementById('paylaterCollectedVsOutstandingChart')) {
+    // Merge months from both datasets
+    const allMonths = new Set();
+    paylaterOutstandingData.forEach(item => allMonths.add(item.month));
+    paylaterCollectedData.forEach(item => allMonths.add(item.month));
+    const sortedMonths = Array.from(allMonths).sort();
+
+    const outstandingMap = {};
+    paylaterOutstandingData.forEach(item => {
+        outstandingMap[item.month] = parseFloat(item.outstanding);
+    });
+
+    const collectedMap = {};
+    paylaterCollectedData.forEach(item => {
+        collectedMap[item.month] = parseFloat(item.collected);
+    });
+
+    const monthLabels = sortedMonths.map(month => {
+        const date = new Date(month + '-01');
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+    });
+
+    const outstandingValues = sortedMonths.map(month => outstandingMap[month] || 0);
+    const collectedValues = sortedMonths.map(month => collectedMap[month] || 0);
+
+    new Chart(document.getElementById('paylaterCollectedVsOutstandingChart'), {
+        type: 'line',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: 'Outstanding (RM)',
+                data: outstandingValues,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Collected (RM)',
+                data: collectedValues,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: true, position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': RM ' + context.parsed.y.toFixed(2);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'RM ' + value.toFixed(0);
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 <?php endif; ?>
 }); // End DOMContentLoaded
