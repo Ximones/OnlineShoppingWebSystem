@@ -1171,9 +1171,9 @@ main.container {
     pointer-events: none;
 }
 
-.rating-stars input[type="radio"]:checked ~ label i,
+.rating-stars input[type="radio"]:checked~label i,
 .rating-stars label:hover i,
-.rating-stars label:hover ~ label i {
+.rating-stars label:hover~label i {
     color: #f5a623;
 }
 
@@ -1788,7 +1788,7 @@ form textarea[readonly] {
 
 .pagination-container {
     display: flex;
-    justify-content: center; 
+    justify-content: center;
     width: 100%;
     padding: 40px 0;
 }
@@ -1821,7 +1821,7 @@ form textarea[readonly] {
 }
 
 .page-link.is-active {
-    background: #000; 
+    background: #000;
     color: #fff;
     border-color: #000;
 }
@@ -1835,11 +1835,16 @@ form textarea[readonly] {
 /* --- Multiple product photos view --- */
 
 .product-card img {
-    width: 100%;            /* Fills the width of the card */
-    height: 250px;          /* Set a fixed height for all images */
-    object-fit: contain;    /* Keeps the whole image visible without stretching */
-    background-color: #fff; /* Optional: adds a white background if the image is small */
-    padding: 10px;          /* Optional: adds some breathing room around the toilet */
+    width: 100%;
+    /* Fills the width of the card */
+    height: 250px;
+    /* Set a fixed height for all images */
+    object-fit: contain;
+    /* Keeps the whole image visible without stretching */
+    background-color: #fff;
+    /* Optional: adds a white background if the image is small */
+    padding: 10px;
+    /* Optional: adds some breathing room around the toilet */
 }
 
 .product-detail {
@@ -1930,6 +1935,34 @@ form textarea[readonly] {
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+.product-photo-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.product-photo-view__thumbs {
+    max-height: 480px;
+    overflow-y: auto;
+    flex-wrap: nowrap;
+}
+
+.product-photo-view__thumb {
+    flex-shrink: 0;
+}
+
+.product-photo-view__thumbs::-webkit-scrollbar {
+    width: 10px;
+}
+
+.product-photo-view__thumbs::-webkit-scrollbar-thumb {
+    background-color: #bbb;
+    border-radius: 8px;
+}
+
+.product-photo-view__thumbs::-webkit-scrollbar-track {
+    background: #f0f0f0;
 }
 
 .primary-badge {
