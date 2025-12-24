@@ -59,33 +59,37 @@ $allPhotos = $allPhotos ?? [];
                 $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
                 $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
                 ?>
-               <article class="home-product-card" style="position: relative;">
-    <div class="home-product-body" style="text-align: center;">
-        <div style="background:#000; color:#fff; width:30px; height:30px; 
-                    border-radius:50%; display:flex; align-items:center; 
-                    justify-content:center; font-weight:bold; margin: 0 auto 10px auto;">
-            <?= $index + 1; ?>
-        </div>
+                <article class="home-product-card" style="position: relative;">
+                    <div class="home-product-body" style="text-align: center;">
+                        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #444 100%); 
+                                    color: #fff; width: 34px; height: 34px; 
+                                    border-radius: 50%; display: flex; align-items: center; 
+                                    justify-content: center; font-weight: bold; 
+                                    margin: 0 auto 12px auto; border: 3px solid #f3f4f6;
+                                    box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 14px;">
+                            <?= $index + 1; ?>
+                        </div>
 
-        <h3 class="home-product-title"><?= encode($product['name']); ?></h3>
-        <p class="home-product-subtitle">
-            From RM <?= number_format($product['price'], 2); ?>
-        </p>
-    </div>
+                        <h3 class="home-product-title"><?= encode($product['name']); ?></h3>
+                        <p class="home-product-subtitle">
+                            From RM <?= number_format($product['price'], 2); ?>
+                        </p>
+                    </div>
 
-    <div class="home-product-media">
-        <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>">
-    </div>
+                    <div class="home-product-media">
+                        <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>">
+                    </div>
 
-    <div class="home-product-footer">
-        <a class="btn secondary home-product-cta"
-           href="?module=shop&action=detail&id=<?= $product['id']; ?>">
-            View details
-        </a>
-    </div>
-</article>
+                    <div class="home-product-footer">
+                        <a class="btn secondary home-product-cta"
+                           href="?module=shop&action=detail&id=<?= $product['id']; ?>">
+                            View details
+                        </a>
+                    </div>
+                </article>
             <?php endforeach; ?>
         </div>
+
         <button class="home-products-nav home-products-nav-right" type="button">›</button>
     </div>
 </section>
