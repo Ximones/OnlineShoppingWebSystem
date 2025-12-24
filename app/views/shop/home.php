@@ -58,15 +58,42 @@ $allPhotos = $allPhotos ?? [];
                 <?php
                 $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
                 $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
+
+                // Define Podium Colors
+                if ($index === 0) {
+                    $bg = 'linear-gradient(135deg, #FFD700 0%, #D4AF37 100%)'; // Gold
+                    $size = '40px';
+                } elseif ($index === 1) {
+                    $bg = 'linear-gradient(135deg, #E0E0E0 0%, #A0A0A0 100%)'; // Silver
+                    $size = '36px';
+                } elseif ($index === 2) {
+                    $bg = 'linear-gradient(135deg, #CD7F32 0%, #8B4513 100%)'; // Bronze
+                    $size = '36px';
+                } else {
+                    $bg = 'linear-gradient(135deg, #1a1a1a 0%, #444 100%)';    // Standard
+                    $size = '34px';
+                }
                 ?>
                 <article class="home-product-card" style="position: relative;">
-                    <div class="home-product-body" style="text-align: center;">
-                        <div style="background: linear-gradient(135deg, #1a1a1a 0%, #444 100%); 
-                                    color: #fff; width: 34px; height: 34px; 
+                    <div class="home-product-body" style="text-align: center; position: relative;">
+                        
+                        <?php if ($index === 0): ?>
+                            <div style="position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 26px; z-index: 2; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));">
+                                👑
+                            </div>
+                        <?php endif; ?>
+
+                        <div style="background: <?= $bg; ?>; 
+                                    color: #fff; 
+                                    width: <?= $size; ?>; 
+                                    height: <?= $size; ?>; 
                                     border-radius: 50%; display: flex; align-items: center; 
-                                    justify-content: center; font-weight: bold; 
-                                    margin: 0 auto 12px auto; border: 3px solid #f3f4f6;
-                                    box-shadow: 0 2px 5px rgba(0,0,0,0.2); font-size: 14px;">
+                                    justify-content: center; font-weight: 800; 
+                                    margin: 0 auto 12px auto; border: 3px solid #fff;
+                                    box-shadow: 0 4px 10px rgba(0,0,0,0.15); 
+                                    font-size: <?= ($index === 0) ? '18px' : '15px'; ?>;
+                                    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                                    position: relative; z-index: 1;">
                             <?= $index + 1; ?>
                         </div>
 
