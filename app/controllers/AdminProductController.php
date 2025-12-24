@@ -30,6 +30,13 @@ class AdminProductController extends Controller
             'category_id' => get('category_id', ''),
         ];
         $products = $this->products->all($filters);
+
+        // Add primary photo path to each product
+        foreach ($products as &$product) {
+            $primaryPhoto = $this->productPhotos->getPrimaryPhoto($product['id']);
+            $product['primary_photo_path'] = $primaryPhoto['photo_path'] ?? null;
+        }
+
         $categories = $this->categories->all();
         $this->render('admin/products/index', compact('products', 'filters', 'categories'));
     }

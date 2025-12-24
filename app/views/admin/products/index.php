@@ -23,38 +23,119 @@
     </form>
 </section>
 
-<section class="panel">
+<section class="panel" style="padding: 10px; text-align: right;">
+    <div class="view-toggle" style="display: flex; gap: 8px; justify-content: flex-end;">
+        <button id="tableViewBtn" class="btn small" title="Table View" onclick="switchView('table')" style="background-color: #007bff; color: white;">
+            ≡ Table
+        </button>
+        <button id="photoViewBtn" class="btn small" title="Photo View" onclick="switchView('photo')" style="background-color: #f0f0f0; color: #333;">
+            ⊞ Photo
+        </button>
+    </div>
+</section>
+
+<!-- Table View -->
+<section id="tableViewSection" class="panel">
     <table class="table">
         <thead>
-        <tr>
-            <th>SKU</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Stock</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
+            <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
         </thead>
         <tbody>
-        <?php foreach ($products as $product): ?>
-            <tr>
-                <td><?= encode($product['sku']); ?></td>
-                <td><?= encode($product['name']); ?></td>
-                <td><?= encode($product['category_name']); ?></td>
-                <td>RM <?= number_format($product['price'], 2); ?></td>
-                <td><?= encode($product['stock']); ?></td>
-                <td><span class="badge <?= $product['status']; ?>"><?= encode(ucfirst($product['status'])); ?></span></td>
-                <td>
-                    <a class="btn small" href="?module=admin&resource=products&action=edit&id=<?= $product['id']; ?>">Edit</a>
-                    <form method="post" action="?module=admin&resource=products&action=delete" onsubmit="return confirm('Delete product?');">
-                        <input type="hidden" name="id" value="<?= $product['id']; ?>">
-                        <button class="btn danger small">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        <?php endforeach; ?>
+            <?php foreach ($products as $product): ?>
+                <tr>
+                    <td><?= encode($product['sku']); ?></td>
+                    <td><?= encode($product['name']); ?></td>
+                    <td><?= encode($product['category_name']); ?></td>
+                    <td>RM <?= number_format($product['price'], 2); ?></td>
+                    <td><?= encode($product['stock']); ?></td>
+                    <td><span class="badge <?= $product['status']; ?>"><?= encode(ucfirst($product['status'])); ?></span></td>
+                    <td>
+                        <a class="btn small" href="?module=admin&resource=products&action=edit&id=<?= $product['id']; ?>">Edit</a>
+                        <form method="post" action="?module=admin&resource=products&action=delete" onsubmit="return confirm('Delete product?');" style="display: inline;">
+                            <input type="hidden" name="id" value="<?= $product['id']; ?>">
+                            <button class="btn danger small">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
         </tbody>
     </table>
 </section>
 
+<!-- Photo View -->
+<section id="photoViewSection" class="panel" style="display: none;">
+    <div class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+        <?php foreach ($products as $product): ?>
+            <div class="photo-card" style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; display: flex; flex-direction: column; height: 100%;">
+                <div class="photo-container" style="width: 100%; height: 200px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+                    <?php
+                    $primaryPhoto = null;
+                    // Note: In your actual view, you'll need to fetch photos per product
+                    // For now, assuming photos are preloaded
+                    if (isset($product['primary_photo_path'])):
+                    ?>
+                        <img src="<?= encode($product['primary_photo_path']); ?>" alt="<?= encode($product['name']); ?>" style="width: 100%; height: 100%; object-fit: contain; padding: 8px;">
+                    <?php else: ?>
+                        <div style="color: #999; font-size: 14px;">No Image</div>
+                    <?php endif; ?>
+                </div>
+                <div class="photo-info" style="padding: 15px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #333;">
+                        <?= encode($product['name']); ?>
+                    </h3>
+                    <p style="margin: 0 0 15px 0; font-size: 18px; font-weight: bold; color: #007bff;">
+                        RM <?= number_format($product['price'], 2); ?>
+                    </p>
+                    <div class="photo-actions" style="display: flex; gap: 8px;">
+                        <a class="btn small" href="?module=admin&resource=products&action=edit&id=<?= $product['id']; ?>" style="flex: 1; text-align: center;">Edit</a>
+                        <form method="post" action="?module=admin&resource=products&action=delete" onsubmit="return confirm('Delete product?');" style="flex: 1;">
+                            <input type="hidden" name="id" value="<?= $product['id']; ?>">
+                            <button class="btn danger small" style="width: 100%;">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<script>
+    function switchView(view) {
+        const tableView = document.getElementById('tableViewSection');
+        const photoView = document.getElementById('photoViewSection');
+        const tableBtn = document.getElementById('tableViewBtn');
+        const photoBtn = document.getElementById('photoViewBtn');
+
+        if (view === 'table') {
+            tableView.style.display = 'block';
+            photoView.style.display = 'none';
+            tableBtn.style.backgroundColor = '#007bff';
+            tableBtn.style.color = 'white';
+            photoBtn.style.backgroundColor = '#f0f0f0';
+            photoBtn.style.color = '#333';
+            localStorage.setItem('productViewMode', 'table');
+        } else if (view === 'photo') {
+            tableView.style.display = 'none';
+            photoView.style.display = 'block';
+            tableBtn.style.backgroundColor = '#f0f0f0';
+            tableBtn.style.color = '#333';
+            photoBtn.style.backgroundColor = '#007bff';
+            photoBtn.style.color = 'white';
+            localStorage.setItem('productViewMode', 'photo');
+        }
+    }
+
+    // Initialize view based on saved preference
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedView = localStorage.getItem('productViewMode') || 'table';
+        switchView(savedView);
+    });
+</script>
