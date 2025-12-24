@@ -20,52 +20,51 @@ class ShopController extends Controller
         $this->categories = new Category();
         $this->favorites = new Favorite();
     }
-
+    
     public function home(): void
+    
     {
+        
+        $topSellers = $this->products->getTopSellers(5);
         $allProducts = $this->products->all(['status' => 'active']);
-
-        $toiletProducts = [];
-        $accessoryProducts = [];
-        $otherProducts = [];
-        foreach ($allProducts as $product) {
+         $toiletProducts = [];
+         $accessoryProducts = [];
+         $otherProducts = [];
+         
+         foreach ($allProducts as $product) {
             $catName = strtolower($product['category_name'] ?? '');
 
-            // Brushes / cleaning bucket
-            if (in_array($catName, ['cleaning', 'brushes'], true)) {
+              // Brushes / cleaning bucket
+               if (in_array($catName, ['cleaning', 'brushes'], true)) {
                 $accessoryProducts[] = $product;
                 continue;
-            }
-
-            // Other accessories bucket: bidets, seats, mats
-            if (in_array($catName, ['bidets', 'bidet', 'seats', 'mats'], true)) {
-                $otherProducts[] = $product;
+             }
+             
+             if (in_array($catName, ['bidets', 'bidet', 'seats', 'mats'], true)) {
+                 $otherProducts[] = $product;
                 continue;
             }
-
-            // Default: toilet bowls and other main fixtures
-            $toiletProducts[] = $product;
-        }
-
-        // Only show latest few items in each section
-        $toiletProducts = array_slice($toiletProducts, 0, 6);
-        $accessoryProducts = array_slice($accessoryProducts, 0, 6);
-        $otherProducts = array_slice($otherProducts, 0, 6);
-
-        // Fallback: if we somehow have no toilet products but do have items,
-        // show the latest overall products so the homepage is never empty.
-        if (empty($toiletProducts) && !empty($allProducts)) {
-            $toiletProducts = array_slice($allProducts, 0, 6);
-        }
-
-        $categories = $this->categories->all();
-        $this->render('shop/home', [
-            'toiletProducts' => $toiletProducts,
-            'accessoryProducts' => $accessoryProducts,
-            'otherProducts' => $otherProducts,
-            'categories' => $categories,
-        ]);
+        $toiletProducts[] = $product;
     }
+
+    $toiletProducts = array_slice($toiletProducts, 0, 6);
+    $accessoryProducts = array_slice($accessoryProducts, 0, 6);
+    $otherProducts = array_slice($otherProducts, 0, 6);
+
+    if (empty($toiletProducts) && !empty($allProducts)) {
+        $toiletProducts = array_slice($allProducts, 0, 6);
+    }
+
+    $categories = $this->categories->all();
+
+    $this->render('shop/home', [
+        'topSellers' => $topSellers, 
+        'toiletProducts' => $toiletProducts,
+        'accessoryProducts' => $accessoryProducts,
+        'otherProducts' => $otherProducts,
+        'categories' => $categories,
+    ]);
+}
 
     public function catalog(): void
     {

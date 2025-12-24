@@ -43,6 +43,55 @@ $allPhotos = $allPhotos ?? [];
     </div>
 </section>
 
+<?php if (!empty($topSellers)): ?>
+<section class="home-products">
+    <h2 class="home-products-heading">
+        <span class="home-products-heading-highlight" style="color: #d97706;">Top 5 Sellers.</span>
+        <span>&nbsp;Most popular this month.</span>
+    </h2>
+
+    <div class="home-products-shell">
+        <button class="home-products-nav home-products-nav-left" type="button">‹</button>
+
+        <div class="home-products-row" id="home-products-row-top-sellers">
+            <?php foreach ($topSellers as $index => $product): ?>
+                <?php
+                $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
+                $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
+                ?>
+                <article class="home-product-card" style="position: relative;">
+                    <div style="position:absolute;top:20px;right:20px;background:#000;color:#fff;
+                        width:30px;height:30px;border-radius:50%;display:flex;
+                        align-items:center;justify-content:center;font-weight:bold;">
+                        <?= $index + 1; ?>
+                    </div>
+
+                    <div class="home-product-body">
+                        <h3 class="home-product-title"><?= encode($product['name']); ?></h3>
+                        <p class="home-product-subtitle">
+                            From RM <?= number_format($product['price'], 2); ?>
+                        </p>
+                    </div>
+
+                    <div class="home-product-media">
+                        <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>">
+                    </div>
+
+                    <div class="home-product-footer">
+                        <a class="btn secondary home-product-cta"
+                           href="?module=shop&action=detail&id=<?= $product['id']; ?>">
+                            View details
+                        </a>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+        </div>
+
+        <button class="home-products-nav home-products-nav-right" type="button">›</button>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="home-products">
     <h2 class="home-products-heading">
         <span class="home-products-heading-highlight">The latest.</span>

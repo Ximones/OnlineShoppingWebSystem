@@ -151,4 +151,22 @@ class Product
         $stm = $this->db->prepare('DELETE FROM products WHERE id = ?');
         $stm->execute([$id]);
     }
+
+    public function getTopSellers(int $limit = 5): array
+    {
+    $sql = "SELECT p.*, SUM(oi.quantity) as total_sold
+            FROM products p
+            JOIN order_items oi ON p.id = oi.product_id
+            WHERE p.status = 'active'
+            GROUP BY p.id
+            ORDER BY total_sold DESC
+            LIMIT ?";
+
+    $stm = $this->db->prepare($sql);
+    // We use PARAM_INT to ensure the LIMIT works correctly in SQL
+    $stm->bindValue(1, $limit, PDO::PARAM_INT);
+    $stm->execute();
+    
+    return $stm->fetchAll();
+}
 }
