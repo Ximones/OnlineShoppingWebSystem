@@ -37,22 +37,22 @@ foreach ($products as $product) {
 ?>
 
 <?php if ($lowStockCount > 0 || $outOfStockCount > 0): ?>
-<section class="panel" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <div style="font-size: 24px; color: #ff6b6b;">⚠️</div>
-        <div>
-            <strong style="color: #856404; font-size: 16px;">Stock Alert</strong>
-            <p style="margin: 5px 0 0 0; color: #856404; font-size: 14px;">
-                <?php if ($outOfStockCount > 0): ?>
-                    <strong><?= $outOfStockCount; ?> product(s) out of stock</strong> | 
-                <?php endif; ?>
-                <?php if ($lowStockCount > 0): ?>
-                    <strong><?= $lowStockCount; ?> product(s) low in stock (10 or below)</strong>
-                <?php endif; ?>
-            </p>
+    <section class="panel" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 24px; color: #ff6b6b;">⚠️</div>
+            <div>
+                <strong style="color: #856404; font-size: 16px;">Stock Alert</strong>
+                <p style="margin: 5px 0 0 0; color: #856404; font-size: 14px;">
+                    <?php if ($outOfStockCount > 0): ?>
+                        <strong><?= $outOfStockCount; ?> product(s) out of stock</strong><?php if ($lowStockCount > 0): ?> | <?php endif; ?>
+                    <?php endif; ?>
+                    <?php if ($lowStockCount > 0): ?>
+                        <strong><?= $lowStockCount; ?> product(s) low in stock (10 or below)</strong>
+                    <?php endif; ?>
+                </p>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 <?php endif; ?>
 
 <!-- Table View -->
@@ -65,10 +65,12 @@ foreach ($products as $product) {
             ⊞ Photo
         </button>
     </div>
-    <form method="post" action="?module=admin&resource=products&action=batchDelete" id="batch-delete-form-products" style="margin-top: 45px;">
-        <div style="margin-bottom: 15px;">
-            <button type="button" class="btn danger" id="batch-delete-btn-products" style="display: none;" onclick="confirmBatchDelete('products')">Delete Selected</button>
-        </div>
+    <div style="margin-top: 45px;">
+        <form method="post" action="?module=admin&resource=products&action=batchDelete" id="batch-delete-form-products">
+            <div style="margin-bottom: 15px;">
+                <button type="button" class="btn danger" id="batch-delete-btn-products" style="display: none;" onclick="confirmBatchDelete('products')">Delete Selected</button>
+            </div>
+        </form>
         <table class="table">
             <thead>
                 <tr>
@@ -86,20 +88,20 @@ foreach ($products as $product) {
             </thead>
             <tbody>
                 <?php foreach ($products as $product): ?>
-                    <?php 
-                        $stockStatus = '';
-                        $stockAlert = '';
-                        if ($product['stock'] == 0) {
-                            $stockStatus = 'out-of-stock';
-                            $stockAlert = '<span class="stock-alert danger" title="Out of Stock">Out of Stock</span>';
-                        } elseif ($product['stock'] <= 10) {
-                            $stockStatus = 'low-stock';
-                            $stockAlert = '<span class="stock-alert warning" title="Low Stock (10 or below)">Low Stock</span>';
-                        }
+                    <?php
+                    $stockStatus = '';
+                    $stockAlert = '';
+                    if ($product['stock'] == 0) {
+                        $stockStatus = 'out-of-stock';
+                        $stockAlert = '<span class="stock-alert danger" title="Out of Stock">Out of Stock</span>';
+                    } elseif ($product['stock'] <= 10) {
+                        $stockStatus = 'low-stock';
+                        $stockAlert = '<span class="stock-alert warning" title="Low Stock (10 or below)">Low Stock</span>';
+                    }
                     ?>
                     <tr class="<?= $stockStatus; ?>">
                         <td>
-                            <input type="checkbox" name="ids[]" value="<?= $product['id']; ?>" class="product-checkbox" onchange="updateBatchDeleteBtn('products')">
+                            <input type="checkbox" name="ids[]" value="<?= $product['id']; ?>" class="product-checkbox" form="batch-delete-form-products" onchange="updateBatchDeleteBtn('products')">
                         </td>
                         <td><?= encode($product['sku']); ?></td>
                         <td><?= encode($product['name']); ?></td>
@@ -118,14 +120,14 @@ foreach ($products as $product) {
                             <a class="btn small" href="?module=admin&resource=products&action=edit&id=<?= $product['id']; ?>">Edit</a>
                             <form method="post" action="?module=admin&resource=products&action=delete" onsubmit="return confirm('Delete product?');" style="display: inline;">
                                 <input type="hidden" name="id" value="<?= $product['id']; ?>">
-                                <button class="btn danger small">Delete</button>
+                                <button type="submit" class="btn danger small">Delete</button>
                             </form>
                         </td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
         </table>
-    </form>
+    </div>
 </section>
 
 <!-- Photo View -->
@@ -138,26 +140,28 @@ foreach ($products as $product) {
             ⊞ Photo
         </button>
     </div>
-    <form method="post" action="?module=admin&resource=products&action=batchDelete" id="batch-delete-form-products-photo" style="margin-top: 45px;">
-        <div style="margin-bottom: 15px;">
-            <button type="button" class="btn danger" id="batch-delete-btn-products-photo" style="display: none;" onclick="confirmBatchDelete('products-photo')">Delete Selected</button>
-        </div>
+    <div style="margin-top: 45px;">
+        <form method="post" action="?module=admin&resource=products&action=batchDelete" id="batch-delete-form-products-photo">
+            <div style="margin-bottom: 15px;">
+                <button type="button" class="btn danger" id="batch-delete-btn-products-photo" style="display: none;" onclick="confirmBatchDelete('products-photo')">Delete Selected</button>
+            </div>
+        </form>
         <div class="photo-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
             <?php foreach ($products as $product): ?>
-                <?php 
-                    $stockStatus = '';
-                    $stockAlert = '';
-                    if ($product['stock'] == 0) {
-                        $stockStatus = 'out-of-stock';
-                        $stockAlert = '<span class="stock-alert danger" title="Out of Stock">Out of Stock</span>';
-                    } elseif ($product['stock'] <= 10) {
-                        $stockStatus = 'low-stock';
-                        $stockAlert = '<span class="stock-alert warning" title="Low Stock (10 or below)">Low Stock</span>';
-                    }
+                <?php
+                $stockStatus = '';
+                $stockAlert = '';
+                if ($product['stock'] == 0) {
+                    $stockStatus = 'out-of-stock';
+                    $stockAlert = '<span class="stock-alert danger" title="Out of Stock">Out of Stock</span>';
+                } elseif ($product['stock'] <= 10) {
+                    $stockStatus = 'low-stock';
+                    $stockAlert = '<span class="stock-alert warning" title="Low Stock (10 or below)">Low Stock</span>';
+                }
                 ?>
                 <div class="photo-card" style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; display: flex; flex-direction: column; height: 100%; position: relative;" data-stock-status="<?= $stockStatus; ?>">
                     <div style="position: absolute; top: 10px; left: 10px; z-index: 10;">
-                        <input type="checkbox" name="ids[]" value="<?= $product['id']; ?>" class="product-checkbox-photo" onchange="updateBatchDeleteBtn('products-photo')">
+                        <input type="checkbox" name="ids[]" value="<?= $product['id']; ?>" class="product-checkbox-photo" form="batch-delete-form-products-photo" onchange="updateBatchDeleteBtn('products-photo')">
                     </div>
                     <div class="photo-container" style="width: 100%; height: 200px; background-color: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; position: relative;">
                         <?php if ($product['stock'] == 0): ?>
@@ -192,14 +196,14 @@ foreach ($products as $product) {
                             <a class="btn small" href="?module=admin&resource=products&action=edit&id=<?= $product['id']; ?>" style="flex: 1; text-align: center;">Edit</a>
                             <form method="post" action="?module=admin&resource=products&action=delete" onsubmit="return confirm('Delete product?');" style="flex: 1;">
                                 <input type="hidden" name="id" value="<?= $product['id']; ?>">
-                                <button class="btn danger small" style="width: 100%;">Delete</button>
+                                <button type="submit" class="btn danger small" style="width: 100%;">Delete</button>
                             </form>
                         </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-    </form>
+    </div>
 </section>
 
 <script>

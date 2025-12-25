@@ -48,7 +48,7 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 20px;">🚫</span>
                     <div>
-                        <strong style="color: #721c24; display: block;">Out of Stock - This product is currently unavailable.</strong>
+                        <strong style="font-size: 14px; color: #721c24; display: block;">Out of Stock - This product is currently unavailable.</strong>
                     </div>
                 </div>
             </div>
@@ -57,7 +57,7 @@
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 20px;">⚠️</span>
                     <div>
-                        <strong style="color: #856404; display: block;">Low Stock - Only <?= $product['stock']; ?> unit(s) remaining</strong>
+                        <strong style="font-size: 14px; color: #856404; display: block;">Low Stock - Only <?= $product['stock']; ?> unit(s) remaining</strong>
                     </div>
                 </div>
             </div>
@@ -75,12 +75,12 @@
 
             <div class="quantity-section">
                 <label for="quantity-input" class="quantity-label">Quantity</label>
-                <input 
-                    type="number" 
-                    id="quantity-input" 
-                    name="quantity" 
-                    min="1" 
-                    value="1" 
+                <input
+                    type="number"
+                    id="quantity-input"
+                    name="quantity"
+                    min="1"
+                    value="1"
                     class="quantity-input-field"
                     max="<?= $product['stock']; ?>"
                     <?= $product['stock'] == 0 ? 'disabled' : ''; ?>>
@@ -89,16 +89,16 @@
             </div>
 
             <div class="purchase-controls">
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     class="btn primary add-to-cart-btn"
                     id="addToCartBtn"
                     <?= $product['stock'] == 0 ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''; ?>>
                     <i class="fas fa-shopping-cart"></i>
                     Add to Cart
                 </button>
-                <button 
-                    type="submit" 
+                <button
+                    type="submit"
                     class="btn secondary buy-now-btn"
                     id="buyNowBtn"
                     formaction="?module=cart&action=buy_now"
@@ -252,7 +252,7 @@
 
     quantityInput?.addEventListener('input', function() {
         const quantity = parseInt(this.value) || 0;
-        
+
         if (quantity > maxStock) {
             quantityError.textContent = `Cannot exceed available stock (${maxStock} unit${maxStock !== 1 ? 's' : ''})`;
             quantityError.style.display = 'block';
@@ -272,13 +272,13 @@
 
     addToCartForm?.addEventListener('submit', function(e) {
         const quantity = parseInt(quantityInput.value) || 0;
-        
+
         if (quantity > maxStock) {
             e.preventDefault();
             alert(`Cannot add ${quantity} units. Only ${maxStock} unit${maxStock !== 1 ? 's' : ''} available in stock.`);
             return false;
         }
-        
+
         if (quantity < 1) {
             e.preventDefault();
             alert('Please enter a valid quantity');

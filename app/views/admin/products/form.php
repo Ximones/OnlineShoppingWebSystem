@@ -1,8 +1,8 @@
 <?php $title = isset($product) ? 'Edit Product' : 'New Product'; ?>
 
 <?php
-// Display stock alert if stock is 10 or below
-$showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10;
+// Display stock alert if stock is 10 or below AND it's an edit (not create)
+$showStockAlert = isset($product) && !empty($product) && isset($product['id']) && $product['stock'] <= 10;
 ?>
 
 <?php if ($showStockAlert): ?>
@@ -64,9 +64,11 @@ $showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10
 
             <label for="stock">Stock <span style="color: #dc3545;">*</span></label>
             <input type="number" name="stock" id="stockInput" value="<?= encode($product['stock'] ?? ''); ?>" required onchange="updateStockWarning()">
-            <small style="color: #666; margin-top: 5px; display: block;">
-                <span id="alertNote"></span>
-            </small>
+            <?php if (isset($product['id'])): ?>
+                <small style="color: #666; margin-top: 5px; display: block;">
+                    <span id="alertNote"></span>
+                </small>
+            <?php endif; ?>
             <?php err('stock'); ?>
 
             <label for="status">Status</label>
@@ -198,8 +200,10 @@ $showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10
     }
 
     function updateStockWarning() {
-        const stockInput = document.getElementById('stockInput');
         const alertNote = document.getElementById('alertNote');
+        if (!alertNote) return; // Exit if element doesn't exist (create mode)
+
+        const stockInput = document.getElementById('stockInput');
         const stock = parseInt(stockInput.value) || 0;
 
         if (stock === 0) {

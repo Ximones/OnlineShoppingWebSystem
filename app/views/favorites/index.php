@@ -14,36 +14,54 @@
     <?php else: ?>
         <section id="product-grid" class="grid product-catalog-grid">
             <?php foreach ($favoriteProducts as $product): ?>
-                <article class="card product-card">
-                    <img
-                        src="<?= encode($product['photo_path'] ?? 'https://placehold.co/400x250'); ?>"
-                        alt="<?= encode($product['name']); ?>">
+                <?php
+                $isOutOfStock = $product['stock'] == 0;
+                $isFavorited = true;
+                $iconType = 'fas';
+                $colorClass = 'red-filled-heart';
+                ?>
+                <article class="card product-card <?= $isOutOfStock ? 'out-of-stock-card' : ''; ?>" style="<?= $isOutOfStock ? 'opacity: 0.7; position: relative;' : ''; ?>">
+                    <div style="position: relative;">
+                        <img
+                            src="<?= encode($product['photo_path'] ?? 'https://placehold.co/400x250'); ?>"
+                            alt="<?= encode($product['name']); ?>"
+                            style="<?= $isOutOfStock ? 'opacity: 0.5;' : ''; ?>">
+
+                        <?php if ($isOutOfStock): ?>
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                                <div style="background: rgba(0, 0, 0, 0.5); color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                    OUT OF STOCK
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
 
                     <h3><?= encode($product['name']); ?></h3>
                     <p class="price">RM <?= number_format($product['price'], 2); ?></p>
 
-                    <?php
-                    $isFavorited = true;
-                    $iconType = 'fas';
-                    $colorClass = 'red-filled-heart';
-                    ?>
-
                     <div class="product-card-footer">
-                        <!-- Add to Cart -->
-                        <form method="post" action="?module=cart&action=add" style="margin:0;">
-                            <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-                            <input type="hidden" name="quantity" value="1">
-                            <button type="submit" class="btn primary btn small add-to-cart-btn">
+                        <?php if ($isOutOfStock): ?>
+                            <button class="btn primary btn small" disabled style="opacity: 0.6; cursor: not-allowed;">
                                 Add to Cart
                             </button>
-                        </form>
+                            <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                        <?php else: ?>
+                            <!-- Add to Cart -->
+                            <form method="post" action="?module=cart&action=add" style="margin:0;">
+                                <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn primary btn small add-to-cart-btn">
+                                    Add to Cart
+                                </button>
+                            </form>
 
-                        <!-- Details -->
-                        <a
+                            <!-- Details -->
+
                             class="btn secondary btn small"
                             href="?module=shop&action=detail&id=<?= $product['id']; ?>">
                             Details
-                        </a>
+                            </a>
+                        <?php endif; ?>
 
                         <!-- Favorite Heart -->
                         <span
@@ -57,7 +75,7 @@
                 </article>
             <?php endforeach; ?>
         </section>
-        
+
         <?php if ($totalPages > 1): ?>
             <div class="pagination-container">
                 <div class="pagination">
