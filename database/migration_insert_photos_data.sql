@@ -1,6 +1,12 @@
 INSERT INTO product_photos (product_id, photo_path, is_primary, display_order, created_at)
 VALUES
 
+-- Product 1
+(1, '/public/uploads/upload_69418315d30219.46343895_OnePieceRound-1.png', 1, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418315d0d115.95397763_OnePieceRound-2.png', 0, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418315cea080.13861663_OnePieceRound-3.png', 0, 0, '2025-12-19 11:16:17'),
+(1, '/public/uploads/upload_69418370cfb9a2.80186676_OnePieceRound-4.png', 0, 0, '2025-12-19 11:16:17');
+
 -- Product 2
 (2, '/public/uploads/upload_69417f277e4f7.69911724_OnePieceElongated-1.png', 1, 0, '2025-12-19 12:04:43'),
 (2, '/public/uploads/upload_69417f27a2c2e.87961822_OnePieceElongated-2.png', 0, 0, '2025-12-19 12:04:43'),
