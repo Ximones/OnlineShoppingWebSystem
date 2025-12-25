@@ -42,6 +42,27 @@
             <span class="detailPrice">RM <?= number_format($product['price'], 2); ?></span>
         </p>
 
+        <!-- Stock Status Alert -->
+        <?php if ($product['stock'] == 0): ?>
+            <div class="stock-alert out-of-stock-alert" style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">🚫</span>
+                    <div>
+                        <strong style="color: #721c24; display: block;">Out of Stock - This product is currently unavailable.</strong>
+                    </div>
+                </div>
+            </div>
+        <?php elseif ($product['stock'] <= 10): ?>
+            <div class="stock-alert low-stock-alert" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">⚠️</span>
+                    <div>
+                        <strong style="color: #856404; display: block;">Low Stock - Only <?= $product['stock']; ?> unit(s) remaining</strong>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <?php if (!empty($product['description'])): ?>
             <div class="product-description-box">
                 <p class="product-description"><?= nl2br(encode($product['description'])); ?></p>
@@ -49,20 +70,39 @@
         <?php endif; ?>
 
         <!-- Purchase Section -->
-        <form method="post" action="?module=cart&action=add" class="add-to-cart-form">
+        <form method="post" action="?module=cart&action=add" class="add-to-cart-form" id="addToCartForm">
             <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
 
             <div class="quantity-section">
                 <label for="quantity-input" class="quantity-label">Quantity</label>
-                <input type="number" id="quantity-input" name="quantity" min="1" value="1" class="quantity-input-field">
+                <input 
+                    type="number" 
+                    id="quantity-input" 
+                    name="quantity" 
+                    min="1" 
+                    value="1" 
+                    class="quantity-input-field"
+                    max="<?= $product['stock']; ?>"
+                    <?= $product['stock'] == 0 ? 'disabled' : ''; ?>>
+                <small id="quantityError" style="color: #dc3545; display: none; margin-top: 5px;"></small>
+                <small style="color: #666; margin-top: 5px; display: block;">Remaining stock: <?= $product['stock']; ?> unit<?= $product['stock'] !== 1 ? 's' : ''; ?></small>
             </div>
 
             <div class="purchase-controls">
-                <button type="submit" class="btn primary add-to-cart-btn">
+                <button 
+                    type="submit" 
+                    class="btn primary add-to-cart-btn"
+                    id="addToCartBtn"
+                    <?= $product['stock'] == 0 ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''; ?>>
                     <i class="fas fa-shopping-cart"></i>
                     Add to Cart
                 </button>
-                <button type="submit" class="btn secondary buy-now-btn" formaction="?module=cart&action=buy_now">
+                <button 
+                    type="submit" 
+                    class="btn secondary buy-now-btn"
+                    id="buyNowBtn"
+                    formaction="?module=cart&action=buy_now"
+                    <?= $product['stock'] == 0 ? 'disabled style="opacity: 0.6; cursor: not-allowed;"' : ''; ?>>
                     <i class="fas fa-bolt"></i>
                     Buy Now
                 </button>
@@ -73,13 +113,9 @@
                 $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
                 ?>
 
-                <div
-                    class="btn secondary favorite-toggle-btn favorite-toggle"
-                    data-product-id="<?= $product['id']; ?>"
-                    data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>">
+                <span class="favorite-toggle" data-product-id="<?= $product['id']; ?>" data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>">
                     <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
-                    <span class="favorite-text">Add to Favorites</span>
-                </div>
+                </span>
             </div>
         </form>
 
@@ -205,4 +241,48 @@
 
         photoThumbs[currentPhotoIndex].click();
     }
+
+    // Stock validation
+    const quantityInput = document.getElementById('quantity-input');
+    const addToCartForm = document.getElementById('addToCartForm');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    const quantityError = document.getElementById('quantityError');
+    const maxStock = <?= $product['stock']; ?>;
+
+    quantityInput?.addEventListener('input', function() {
+        const quantity = parseInt(this.value) || 0;
+        
+        if (quantity > maxStock) {
+            quantityError.textContent = `Cannot exceed available stock (${maxStock} unit${maxStock !== 1 ? 's' : ''})`;
+            quantityError.style.display = 'block';
+            addToCartBtn.disabled = true;
+            buyNowBtn.disabled = true;
+        } else if (quantity < 1) {
+            quantityError.textContent = 'Quantity must be at least 1';
+            quantityError.style.display = 'block';
+            addToCartBtn.disabled = true;
+            buyNowBtn.disabled = true;
+        } else {
+            quantityError.style.display = 'none';
+            addToCartBtn.disabled = false;
+            buyNowBtn.disabled = false;
+        }
+    });
+
+    addToCartForm?.addEventListener('submit', function(e) {
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (quantity > maxStock) {
+            e.preventDefault();
+            alert(`Cannot add ${quantity} units. Only ${maxStock} unit${maxStock !== 1 ? 's' : ''} available in stock.`);
+            return false;
+        }
+        
+        if (quantity < 1) {
+            e.preventDefault();
+            alert('Please enter a valid quantity');
+            return false;
+        }
+    });
 </script>

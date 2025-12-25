@@ -1,9 +1,25 @@
-<?php
-$title = 'Product Catalog';
+<?php $title = 'Product Catalog';
 
 use App\Models\ProductPhoto;
 
 $productPhotoModel = new ProductPhoto();
+
+// Separate active products and out of stock products
+$activeProducts = [];
+$outOfStockProducts = [];
+
+foreach ($products as $product) {
+    if (($product['status'] ?? '') !== 'active') continue;
+    
+    if ($product['stock'] == 0) {
+        $outOfStockProducts[] = $product;
+    } else {
+        $activeProducts[] = $product;
+    }
+}
+
+// Combine: active products first, then out of stock
+$sortedProducts = array_merge($activeProducts, $outOfStockProducts);
 ?>
 
 <section class="panel">
@@ -17,8 +33,7 @@ $productPhotoModel = new ProductPhoto();
                 id="keyword-search"
                 name="keyword"
                 placeholder="Search keyword"
-                value="<?= encode($filters['keyword'] ?? ''); ?>"
-            >
+                value="<?= encode($filters['keyword'] ?? ''); ?>">
         </div>
 
         <div class="input-group full-width-input">
@@ -27,8 +42,7 @@ $productPhotoModel = new ProductPhoto();
                 <?php foreach ($categories as $category): ?>
                     <option
                         value="<?= $category['id']; ?>"
-                        <?= ($filters['category_id'] ?? '') == $category['id'] ? 'selected' : ''; ?>
-                    >
+                        <?= ($filters['category_id'] ?? '') == $category['id'] ? 'selected' : ''; ?>>
                         <?= encode($category['name']); ?>
                     </option>
                 <?php endforeach; ?>
@@ -44,8 +58,7 @@ $productPhotoModel = new ProductPhoto();
                     name="min_price"
                     placeholder="Min"
                     value="<?= encode($filters['min_price'] ?? ''); ?>"
-                    min="0"
-                >
+                    min="0">
             </div>
 
             <span class="price-separator">-</span>
@@ -58,8 +71,7 @@ $productPhotoModel = new ProductPhoto();
                     name="max_price"
                     placeholder="Max"
                     value="<?= encode($filters['max_price'] ?? ''); ?>"
-                    min="0"
-                >
+                    min="0">
             </div>
         </div>
 
@@ -74,37 +86,52 @@ $productPhotoModel = new ProductPhoto();
                 </option>
             </select>
         </div>
-
-        <button class="btn primary search-btn full-width-button">Search</button>
     </form>
 </section>
 
 <section id="product-grid" class="grid">
-    <?php if (!empty($products)): ?>
-        <?php foreach ($products as $product): ?>
-            <?php if (($product['status'] ?? '') !== 'active') continue; ?>
+    <?php if (!empty($sortedProducts)): ?>
+        <?php foreach ($sortedProducts as $product): ?>
             <?php
-                $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
-                $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/400x250';
+            $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
+            $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/400x250';
+            $isOutOfStock = $product['stock'] == 0;
+            $isFavorited = $product['is_favorited'] ?? false;
+            $iconType = $isFavorited ? 'fas' : 'far';
+            $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
             ?>
-            <article class="card product-card">
-                <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>">
+            <article class="card product-card <?= $isOutOfStock ? 'out-of-stock-card' : ''; ?>" style="<?= $isOutOfStock ? 'opacity: 0.7; position: relative;' : ''; ?>">
+                <div style="position: relative;">
+                    <img src="<?= encode($photoSrc); ?>" alt="<?= encode($product['name']); ?>" style="<?= $isOutOfStock ? 'opacity: 0.5;' : ''; ?>">
+                    
+                    <?php if ($isOutOfStock): ?>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10;">
+                            <div style="background: rgba(0, 0, 0, 0.5); color: white; padding: 15px 25px; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                                OUT OF STOCK
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
                 <h3><?= encode($product['name']); ?></h3>
                 <p><?= encode(substr($product['description'], 0, 100)); ?>...</p>
                 <p class="price">RM <?= number_format($product['price'], 2); ?></p>
-                
-                <?php
-                    $isFavorited = $product['is_favorited'] ?? false;
-                    $iconType = $isFavorited ? 'fas' : 'far';
-                    $colorClass = $isFavorited ? 'red-filled-heart' : 'black-outline-heart';
-                ?>
+
                 <div class="product-card-footer">
-                    <form method="post" action="?module=cart&action=add" style="margin:0;">
-                        <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
-                        <input type="hidden" name="quantity" value="1">
-                        <button type="submit" class="btn primary btn small add-to-cart-btn">Add to Cart</button>
-                    </form>
-                    <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                    <?php if ($isOutOfStock): ?>
+                        <button class="btn primary btn small" disabled style="opacity: 0.6; cursor: not-allowed;">
+                            Add to Cart
+                        </button>
+                        <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                    <?php else: ?>
+                        <form method="post" action="?module=cart&action=add" style="margin:0;">
+                            <input type="hidden" name="product_id" value="<?= $product['id']; ?>">
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="btn primary btn small add-to-cart-btn">Add to Cart</button>
+                        </form>
+                        <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>">Details</a>
+                    <?php endif; ?>
+
                     <span class="favorite-toggle" data-product-id="<?= $product['id']; ?>" data-is-favorited="<?= $isFavorited ? 'true' : 'false'; ?>">
                         <i class="<?= $iconType ?> fa-heart <?= $colorClass ?>"></i>
                     </span>
@@ -141,4 +168,3 @@ $productPhotoModel = new ProductPhoto();
         </div>
     <?php endif; ?>
 </div>
-</section>

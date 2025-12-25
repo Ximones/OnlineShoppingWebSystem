@@ -15,45 +15,54 @@ class Product
     }
 
     public function all(array $filters = []): array
-{
-    $sql = 'SELECT p.*, c.name AS category_name
+    {
+        $sql = 'SELECT p.*, c.name AS category_name
             FROM products p
             LEFT JOIN categories c ON c.id = p.category_id
             WHERE 1=1';
-    $params = [];
+        $params = [];
 
-    $this->applyFilters($sql, $params, $filters);
+        $this->applyFilters($sql, $params, $filters);
 
-    switch ($filters['sort'] ?? '') {
-        case 'price_asc': $sql .= ' ORDER BY p.price ASC'; break;
-        case 'price_desc': $sql .= ' ORDER BY p.price DESC'; break;
-        case 'name_asc': $sql .= ' ORDER BY p.name ASC'; break;
-        case 'name_desc': $sql .= ' ORDER BY p.name DESC'; break;
-        default: $sql .= ' ORDER BY p.created_at DESC';
+        switch ($filters['sort'] ?? '') {
+            case 'price_asc':
+                $sql .= ' ORDER BY p.price ASC';
+                break;
+            case 'price_desc':
+                $sql .= ' ORDER BY p.price DESC';
+                break;
+            case 'name_asc':
+                $sql .= ' ORDER BY p.name ASC';
+                break;
+            case 'name_desc':
+                $sql .= ' ORDER BY p.name DESC';
+                break;
+            default:
+                $sql .= ' ORDER BY p.created_at DESC';
+        }
+
+
+        if (isset($filters['limit'], $filters['offset'])) {
+            $sql .= ' LIMIT ? OFFSET ?';
+        }
+
+        $stm = $this->db->prepare($sql);
+
+        // 1. Bind the standard filter parameters (Keyword, Category, etc.)
+        foreach ($params as $index => $value) {
+            $stm->bindValue($index + 1, $value);
+        }
+
+        // 2. Bind the LIMIT and OFFSET explicitly as INTEGERS
+        if (isset($filters['limit'], $filters['offset'])) {
+            $paramCount = count($params);
+            $stm->bindValue($paramCount + 1, (int)$filters['limit'], PDO::PARAM_INT);
+            $stm->bindValue($paramCount + 2, (int)$filters['offset'], PDO::PARAM_INT);
+        }
+
+        $stm->execute();
+        return $stm->fetchAll();
     }
-
-
-    if (isset($filters['limit'], $filters['offset'])) {
-        $sql .= ' LIMIT ? OFFSET ?';
-    }
-
-    $stm = $this->db->prepare($sql);
-
-    // 1. Bind the standard filter parameters (Keyword, Category, etc.)
-    foreach ($params as $index => $value) {
-        $stm->bindValue($index + 1, $value);
-    }
-
-    // 2. Bind the LIMIT and OFFSET explicitly as INTEGERS
-    if (isset($filters['limit'], $filters['offset'])) {
-        $paramCount = count($params);
-        $stm->bindValue($paramCount + 1, (int)$filters['limit'], PDO::PARAM_INT);
-        $stm->bindValue($paramCount + 2, (int)$filters['offset'], PDO::PARAM_INT);
-    }
-
-    $stm->execute();
-    return $stm->fetchAll();
-}
 
     public function countAll(array $filters = []): int
     {
@@ -164,7 +173,7 @@ class Product
 
     public function getTopSellers(int $limit = 5): array
     {
-    $sql = "SELECT p.*, SUM(oi.quantity) as total_sold
+        $sql = "SELECT p.*, SUM(oi.quantity) as total_sold
             FROM products p
             JOIN order_items oi ON p.id = oi.product_id
             WHERE p.status = 'active'
@@ -172,11 +181,35 @@ class Product
             ORDER BY total_sold DESC
             LIMIT ?";
 
-    $stm = $this->db->prepare($sql);
-    // We use PARAM_INT to ensure the LIMIT works correctly in SQL
-    $stm->bindValue(1, $limit, PDO::PARAM_INT);
-    $stm->execute();
-    
-    return $stm->fetchAll();
-}
+        $stm = $this->db->prepare($sql);
+        // We use PARAM_INT to ensure the LIMIT works correctly in SQL
+        $stm->bindValue(1, $limit, PDO::PARAM_INT);
+        $stm->execute();
+
+        return $stm->fetchAll();
+    }
+
+    public function reduceStock(int $productId, int $quantity): bool
+    {
+        $sql = "UPDATE products 
+            SET stock = stock - ? 
+            WHERE id = ? AND stock >= ?";
+
+        $stm = $this->db->prepare($sql);
+        $stm->execute([$quantity, $productId, $quantity]);
+
+        return $stm->rowCount() > 0;
+    }
+
+    public function restoreStock(int $productId, int $quantity): bool
+    {
+        $sql = "UPDATE products 
+            SET stock = stock + ? 
+            WHERE id = ?";
+
+        $stm = $this->db->prepare($sql);
+        $stm->execute([$quantity, $productId]);
+
+        return $stm->rowCount() > 0;
+    }
 }

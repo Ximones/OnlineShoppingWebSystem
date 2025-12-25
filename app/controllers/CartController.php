@@ -145,6 +145,19 @@ class CartController extends Controller
             redirect('?module=cart&action=index');
         }
 
+        // Check stock availability before proceeding
+        foreach ($items as $item) {
+            $product = $this->products->find($item['product_id']);
+            if (!$product) {
+                flash('danger', 'Product "' . $item['name'] . '" not found.');
+                redirect('?module=cart&action=index');
+            }
+            if ($product['stock'] < $item['quantity']) {
+                flash('danger', 'Insufficient stock for "' . $item['name'] . '". Available: ' . $product['stock'] . ', Requested: ' . $item['quantity']);
+                redirect('?module=cart&action=index');
+            }
+        }
+
         // Determine use of reward points (allow toggle on checkout page)
         $usePoints = !empty($context['use_points']);
         if (is_post() && post('action') !== 'save_address') {
@@ -184,6 +197,15 @@ class CartController extends Controller
             'shipping_phone' => ['required' => 'Phone is required.'],
             'shipping_address' => ['required' => 'Address is required.'],
         ])) {
+            // Final stock check before creating order
+            foreach ($items as $item) {
+                $product = $this->products->find($item['product_id']);
+                if (!$product || $product['stock'] < $item['quantity']) {
+                    flash('danger', 'Stock availability changed. Please review your cart.');
+                    redirect('?module=cart&action=index');
+                }
+            }
+
             $user = $this->users->find($userId);
             $userVouchers = $this->userVouchers->activeForUser($userId);
             $orderCount = $this->orders->countByUser($userId);
@@ -263,7 +285,12 @@ class CartController extends Controller
                 'voucher_code' => $pricingSummary['voucher_code'],
                 'order_status' => $orderStatus,
             ]);
-            
+
+            // Reduce stock for each product in the order
+            foreach ($items as $item) {
+                $this->products->reduceStock($item['product_id'], $item['quantity']);
+            }
+
             $orderModel = new Order();
             $orderDetail = $orderModel->detail($orderId);
             $html = render_ereceipt($orderDetail, $user);
@@ -539,9 +566,15 @@ class CartController extends Controller
         // 1. Mark Order as Cancelled
         $this->orders->updateStatus($orderId, 'cancelled');
 
-        // 2. Restore Items to Cart
+        // 2. Restore stock for cancelled order
         $order = $this->orders->detail($orderId);
+        if ($order && $order['user_id'] == $userId) {
+            foreach ($order['items'] as $item) {
+                $this->products->restoreStock((int)$item['product_id'], (int)$item['quantity']);
+            }
+        }
 
+        // 3. Restore Items to Cart
         if ($order && $order['user_id'] == $userId) {
             $cartId = $this->cart->activeCartId($userId);
 

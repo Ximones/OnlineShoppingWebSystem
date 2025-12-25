@@ -2362,14 +2362,13 @@ tr.out-of-stock {
 
 .purchase-controls {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr auto;
     gap: 0.75rem;
     margin-top: 0.6rem;
     margin-bottom: 1rem;
 }
 
-.add-to-cart-btn,
-.favorite-toggle-btn {
+.add-to-cart-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2377,6 +2376,18 @@ tr.out-of-stock {
     padding: 0.75rem 1.2rem;
     font-size: 1rem;
     font-weight: 500;
+}
+
+.purchase-controls .favorite-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.purchase-controls .favorite-toggle i {
+    font-size: 1.8rem;
+    line-height: 1;
 }
 
 .product-features {

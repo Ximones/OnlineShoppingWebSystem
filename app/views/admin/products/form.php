@@ -1,40 +1,40 @@
 <?php $title = isset($product) ? 'Edit Product' : 'New Product'; ?>
 
-<?php 
-    // Display stock alert if stock is 10 or below
-    $showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10;
+<?php
+// Display stock alert if stock is 10 or below
+$showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10;
 ?>
 
 <?php if ($showStockAlert): ?>
-<section class="panel" style="background-color: <?= $product['stock'] == 0 ? '#f8d7da' : '#fff3cd'; ?>; border-left: 4px solid <?= $product['stock'] == 0 ? '#dc3545' : '#ffc107'; ?>; padding: 15px; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; gap: 15px;">
-        <div style="font-size: 24px;">
-            <?= $product['stock'] == 0 ? '🚫' : '⚠️'; ?>
+    <section class="panel" style="background-color: <?= $product['stock'] == 0 ? '#f8d7da' : '#fff3cd'; ?>; border-left: 4px solid <?= $product['stock'] == 0 ? '#dc3545' : '#ffc107'; ?>; padding: 15px; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 24px;">
+                <?= $product['stock'] == 0 ? '🚫' : '⚠️'; ?>
+            </div>
+            <div>
+                <strong style="color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 16px;">
+                    <?= $product['stock'] == 0 ? 'Out of Stock' : 'Low Stock Alert'; ?>
+                </strong>
+                <p style="margin: 5px 0 0 0; color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 14px;">
+                    <?php if ($product['stock'] == 0): ?>
+                        This product is currently out of stock, 0 units remaining. Please restock immediately.
+                    <?php else: ?>
+                        Current stock is <strong><?= $product['stock']; ?> units</strong>. Please consider restocking soon.
+                    <?php endif; ?>
+                </p>
+            </div>
         </div>
-        <div>
-            <strong style="color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 16px;">
-                <?= $product['stock'] == 0 ? 'Out of Stock' : 'Low Stock Alert'; ?>
-            </strong>
-            <p style="margin: 5px 0 0 0; color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 14px;">
-                <?php if ($product['stock'] == 0): ?>
-                    This product is out of stock. Its status has been automatically set to <strong>Inactive</strong>.
-                <?php else: ?>
-                    Current stock is <strong><?= $product['stock']; ?> units</strong>. Please consider restocking soon.
-                <?php endif; ?>
-            </p>
-        </div>
-    </div>
-</section>
+    </section>
 <?php endif; ?>
 
 <section class="panel">
     <h2><?= $title; ?></h2>
     <form method="post" enctype="multipart/form-data">
-        
+
         <!-- Basic Information Section -->
         <div class="form-section">
             <h3 class="form-section-title">Basic Information</h3>
-            
+
             <label for="name">Product Name</label>
             <input type="text" name="name" value="<?= encode($product['name'] ?? ''); ?>" required>
             <?php err('name'); ?>
@@ -63,8 +63,10 @@
             <?php err('price'); ?>
 
             <label for="stock">Stock <span style="color: #dc3545;">*</span></label>
-            <input type="number" name="stock" id="stockInput" value="<?= encode($product['stock'] ?? ''); ?>" required onchange="updateStatusBasedOnStock()">
-            <small style="color: #666; margin-top: 5px; display: block;">Stock value of 0 will automatically set product status to Inactive</small>
+            <input type="number" name="stock" id="stockInput" value="<?= encode($product['stock'] ?? ''); ?>" required onchange="updateStockWarning()">
+            <small style="color: #666; margin-top: 5px; display: block;">
+                <span id="alertNote"></span>
+            </small>
             <?php err('stock'); ?>
 
             <label for="status">Status</label>
@@ -72,15 +74,12 @@
                 <option value="active" <?= ($product['status'] ?? '') === 'active' ? 'selected' : ''; ?>>Active</option>
                 <option value="inactive" <?= ($product['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
             </select>
-            <small style="color: #666; margin-top: 5px; display: block;">
-                <span id="statusNote"></span>
-            </small>
         </div>
 
         <!-- Technical Specifications Section -->
         <div class="form-section">
             <h3 class="form-section-title">Technical Specifications</h3>
-            
+
             <div class="form-grid">
                 <div class="form-group">
                     <label for="color">Color</label>
@@ -137,7 +136,7 @@
         <!-- Photos Section -->
         <div class="form-section">
             <h3 class="form-section-title">Product Photos</h3>
-            
+
             <label for="photos">Upload Photos</label>
             <input type="file" id="photoInput" name="photos[]" accept="image/*" multiple>
             <div class="photo-note">
@@ -198,23 +197,21 @@
         document.getElementById('setPrimaryPhotoForm').submit();
     }
 
-    function updateStatusBasedOnStock() {
+    function updateStockWarning() {
         const stockInput = document.getElementById('stockInput');
-        const statusSelect = document.getElementById('statusSelect');
-        const statusNote = document.getElementById('statusNote');
+        const alertNote = document.getElementById('alertNote');
         const stock = parseInt(stockInput.value) || 0;
 
         if (stock === 0) {
-            statusSelect.value = 'inactive';
-            statusNote.textContent = '⚠️ Status changed to Inactive (Stock is 0)';
-            statusNote.style.color = '#dc3545';
-            statusNote.style.fontWeight = 'bold';
+            alertNote.textContent = '⚠️ Out of stock.';
+            alertNote.style.color = '#dc3545';
+            alertNote.style.fontWeight = 'bold';
         } else if (stock <= 10) {
-            statusNote.textContent = '⚠️ Low stock warning (10 units or below)';
-            statusNote.style.color = '#856404';
-            statusNote.style.fontWeight = 'normal';
+            alertNote.textContent = '⚠️ Low stock warning (10 units or below)';
+            alertNote.style.color = '#856404';
+            alertNote.style.fontWeight = 'normal';
         } else {
-            statusNote.textContent = '';
+            alertNote.textContent = '';
         }
     }
 
@@ -231,6 +228,6 @@
 
     // Initialize status display on page load
     document.addEventListener('DOMContentLoaded', function() {
-        updateStatusBasedOnStock();
+        updateStockWarning();
     });
 </script>
