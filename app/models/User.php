@@ -278,6 +278,12 @@ class User
 
     public function delete(int $id): void
     {
+        $stmt = $this->db->prepare("DELETE FROM users WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+
+    public function deleteMember(int $id): void
+    {
         $user = $this->find($id);
         if ($user && $user['role'] === 'admin') {
             throw new \RuntimeException('Cannot delete admin users.');
@@ -294,7 +300,7 @@ class User
         $failed = [];
         foreach ($ids as $id) {
             try {
-                $this->delete($id);
+                $this->deleteMember($id);
             } catch (\RuntimeException $e) {
                 $failed[] = ['id' => $id, 'error' => $e->getMessage()];
             }

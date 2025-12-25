@@ -65,7 +65,7 @@ class AdminMemberController extends AdminController
         $this->requireAdmin();
         $id = (int) post('id');
         try {
-            $this->users->delete($id);
+            $this->users->deleteMember($id);
             flash('success', 'Member deleted.');
         } catch (\RuntimeException $ex) {
             flash('danger', $ex->getMessage());

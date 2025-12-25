@@ -29,19 +29,22 @@ class AuthController extends Controller
             $user = $this->users->findByEmail(post('email'));
 
             if ($user) {
-                // Check if user is blocked
+
+                // Check if they have verified their email
+                if (empty($user['email_verified_at'])) {
+                    flash('danger', 'Please verify your email address before logging in.');
+                    $this->render('auth/login');
+                    return;
+                }
+
+                // Check if they are banned/blocked
                 if (($user['status'] ?? 'active') === 'blocked') {
                     flash('danger', 'Your account has been blocked. Please contact support.');
                     $this->render('auth/login');
                     return;
                 }
 
-                if (empty($user['email_verified_at'])) {
-                    flash('warning', 'Please verify your email address before logging in.');
-                    $this->render('auth/login');
-                    return;
-                }
-
+                // Check Lockout (Anti-Spam/Brute Force)
                 if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
                     $remaining = strtotime($user['lockout_until']) - time();
                     flash('danger', "Too many attempts. Locked for another $remaining seconds.");
@@ -49,12 +52,14 @@ class AuthController extends Controller
                     return;
                 }
 
+                // Verify Password
                 if (password_verify(post('password'), $user['password_hash'])) {
                     $this->users->resetLockout($user['id']);
                     auth_login($user);
                     flash('success', 'Welcome back, ' . $user['name'] . '!');
                     redirect('?module=shop&action=home');
                 } else {
+                    // Wrong password logic
                     $newAttempts = $user['login_attempts'] + 1;
                     $lockoutTime = null;
 
@@ -69,7 +74,10 @@ class AuthController extends Controller
                     $this->users->updateLockout($user['id'], $newAttempts, $lockoutTime);
                 }
             } else {
-                flash('danger', 'Invalid credentials.');
+                // Send unregistered user to register page
+                flash('danger', 'Account not found. Please register first.');
+                redirect('?module=auth&action=register');
+                return;
             }
         }
 
@@ -92,29 +100,43 @@ class AuthController extends Controller
             'password' => ['required' => 'Password is required.', 'min:8' => 'Password must be at least 8 characters.'],
             'confirm_password' => ['same:password' => 'Passwords do not match.'],
         ])) {
-            if ($this->users->findByEmail(post('email'))) {
-                flash('danger', 'Email already registered.');
-            } else {
-                $id = $this->users->create([
-                    'name' => post('name'),
-                    'email' => post('email'),
-                    'phone' => post('phone'),
-                    'password_hash' => password_hash(post('password'), PASSWORD_DEFAULT),
-                    'role' => 'member',
-                ]);
 
-                // Generate and save verification token
-                $token = bin2hex(random_bytes(32));
-                $this->users->saveVerificationToken($id, $token);
+            $email = post('email');
+            $existingUser = $this->users->findByEmail($email);
 
-                // Send email
-                $user = $this->users->find($id);
-                $this->sendVerificationEmail($user, $token);
+            // Handling of existing emails
+            if ($existingUser) {
+                // Case 1: User is already fully verified.
+                if (!empty($existingUser['email_verified_at'])) {
+                    flash('danger', 'Email already registered. Please log in.');
+                    $this->render('auth/register');
+                    return;
+                }
 
-                // DO NOT LOGIN. Redirect to login page.
-                flash('success', 'Registration successful! Please check your email to verify your account.');
-                redirect('?module=auth&action=login');
+                // Case 2: User exists but NEVER verified.
+                // Assume this is a "dead" account. Delete it and create a fresh one.
+                $this->users->delete($existingUser['id']);
             }
+
+            // Proceed to create the new (or replaced) user
+            $id = $this->users->create([
+                'name' => post('name'),
+                'email' => post('email'),
+                'phone' => post('phone'),
+                'password_hash' => password_hash(post('password'), PASSWORD_DEFAULT),
+                'role' => 'member',
+            ]);
+
+            // Generate and save verification token
+            $token = bin2hex(random_bytes(32));
+            $this->users->saveVerificationToken($id, $token);
+
+            // Send email
+            $user = $this->users->find($id);
+            $this->sendVerificationEmail($user, $token);
+
+            flash('success', 'Registration successful! Please check your email to verify your account.');
+            redirect('?module=auth&action=login');
         }
 
         $this->render('auth/register');
