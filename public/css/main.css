@@ -771,8 +771,7 @@ main.container {
 }
 
 .btn.primary,
-.btn.secondary {
-}
+.btn.secondary {}
 
 .btn.danger {
     background: transparent;
@@ -1905,6 +1904,48 @@ form textarea[readonly] {
     opacity: 0.5;
     pointer-events: none;
     background: #eee;
+}
+
+/* --- Product Stock Alert --- */
+
+.stock-alert {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.stock-alert.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.stock-alert.danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+tr.low-stock {
+    background-color: #fffbf0 !important;
+}
+
+tr.out-of-stock {
+    background-color: #fdf3f5 !important;
+    opacity: 0.8;
+}
+
+.photo-card[data-stock-status="low-stock"] {
+    border-color: #ffc107;
+    border-width: 2px;
+}
+
+.photo-card[data-stock-status="out-of-stock"] {
+    border-color: #dc3545;
+    border-width: 2px;
 }
 
 /* --- Multiple product photos view --- */

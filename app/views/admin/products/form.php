@@ -1,4 +1,32 @@
 <?php $title = isset($product) ? 'Edit Product' : 'New Product'; ?>
+
+<?php 
+    // Display stock alert if stock is 10 or below
+    $showStockAlert = isset($product) && !empty($product) && $product['stock'] <= 10;
+?>
+
+<?php if ($showStockAlert): ?>
+<section class="panel" style="background-color: <?= $product['stock'] == 0 ? '#f8d7da' : '#fff3cd'; ?>; border-left: 4px solid <?= $product['stock'] == 0 ? '#dc3545' : '#ffc107'; ?>; padding: 15px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: center; gap: 15px;">
+        <div style="font-size: 24px;">
+            <?= $product['stock'] == 0 ? '🚫' : '⚠️'; ?>
+        </div>
+        <div>
+            <strong style="color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 16px;">
+                <?= $product['stock'] == 0 ? 'Out of Stock' : 'Low Stock Alert'; ?>
+            </strong>
+            <p style="margin: 5px 0 0 0; color: <?= $product['stock'] == 0 ? '#721c24' : '#856404'; ?>; font-size: 14px;">
+                <?php if ($product['stock'] == 0): ?>
+                    This product is out of stock. Its status has been automatically set to <strong>Inactive</strong>.
+                <?php else: ?>
+                    Current stock is <strong><?= $product['stock']; ?> units</strong>. Please consider restocking soon.
+                <?php endif; ?>
+            </p>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="panel">
     <h2><?= $title; ?></h2>
     <form method="post" enctype="multipart/form-data">
@@ -34,15 +62,19 @@
             <input type="number" step="0.01" name="price" value="<?= encode($product['price'] ?? ''); ?>" required>
             <?php err('price'); ?>
 
-            <label for="stock">Stock</label>
-            <input type="number" name="stock" value="<?= encode($product['stock'] ?? ''); ?>" required>
+            <label for="stock">Stock <span style="color: #dc3545;">*</span></label>
+            <input type="number" name="stock" id="stockInput" value="<?= encode($product['stock'] ?? ''); ?>" required onchange="updateStatusBasedOnStock()">
+            <small style="color: #666; margin-top: 5px; display: block;">Stock value of 0 will automatically set product status to Inactive</small>
             <?php err('stock'); ?>
 
             <label for="status">Status</label>
-            <select name="status">
+            <select name="status" id="statusSelect">
                 <option value="active" <?= ($product['status'] ?? '') === 'active' ? 'selected' : ''; ?>>Active</option>
                 <option value="inactive" <?= ($product['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
             </select>
+            <small style="color: #666; margin-top: 5px; display: block;">
+                <span id="statusNote"></span>
+            </small>
         </div>
 
         <!-- Technical Specifications Section -->
@@ -166,6 +198,26 @@
         document.getElementById('setPrimaryPhotoForm').submit();
     }
 
+    function updateStatusBasedOnStock() {
+        const stockInput = document.getElementById('stockInput');
+        const statusSelect = document.getElementById('statusSelect');
+        const statusNote = document.getElementById('statusNote');
+        const stock = parseInt(stockInput.value) || 0;
+
+        if (stock === 0) {
+            statusSelect.value = 'inactive';
+            statusNote.textContent = '⚠️ Status changed to Inactive (Stock is 0)';
+            statusNote.style.color = '#dc3545';
+            statusNote.style.fontWeight = 'bold';
+        } else if (stock <= 10) {
+            statusNote.textContent = '⚠️ Low stock warning (10 units or below)';
+            statusNote.style.color = '#856404';
+            statusNote.style.fontWeight = 'normal';
+        } else {
+            statusNote.textContent = '';
+        }
+    }
+
     document.getElementById('photoInput')?.addEventListener('change', function(e) {
         const files = e.target.files;
         if (files.length > 0) {
@@ -175,5 +227,10 @@
             }
             console.log(fileList);
         }
+    });
+
+    // Initialize status display on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateStatusBasedOnStock();
     });
 </script>

@@ -24,9 +24,42 @@ class User
 
     public function findByEmail(string $email): ?array
     {
-        $stm = $this->db->prepare('SELECT * FROM users WHERE email = ? LIMIT 1');
-        $stm->execute([$email]);
-        return $stm->fetch() ?: null;
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function saveResetToken(int $userId, string $token, string $expiresAt): void
+    {
+        $stmt = $this->db->prepare("
+        UPDATE users 
+        SET reset_token = ?, reset_token_expires_at = ? 
+        WHERE id = ?
+    ");
+        $stmt->execute([$token, $expiresAt, $userId]);
+    }
+
+    public function getResetToken(string $token): ?array
+    {
+        $stmt = $this->db->prepare("
+        SELECT id as user_id, reset_token 
+        FROM users 
+        WHERE reset_token = ? 
+        AND reset_token_expires_at > NOW() 
+        LIMIT 1
+    ");
+        $stmt->execute([$token]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function deleteResetToken(string $token): void
+    {
+        $stmt = $this->db->prepare("
+        UPDATE users 
+        SET reset_token = NULL, reset_token_expires_at = NULL 
+        WHERE reset_token = ?
+    ");
+        $stmt->execute([$token]);
     }
 
     public function create(array $data): int
@@ -192,7 +225,7 @@ class User
 
         require_once __DIR__ . '/../lib/rewards.php';
         $newTier = calculate_reward_tier((float)$user['reward_points']);
-        
+
         $stm = $this->db->prepare('UPDATE users SET reward_tier = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([$newTier, $id]);
     }
@@ -211,15 +244,15 @@ class User
         $stm->execute($params);
         return $stm->fetchAll();
     }
-    
+
     public function updateLockout(int $userId, int $attempts, ?string $lockoutUntil = null): void
-    {  
+    {
         $stmt = $this->db->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
         $stmt->execute([$attempts, $lockoutUntil, $userId]);
     }
-    
+
     public function resetLockout(int $userId): void
-    { 
+    {
         $stmt = $this->db->prepare("UPDATE users SET login_attempts = 0, lockout_until = NULL WHERE id = ?");
         $stmt->execute([$userId]);
     }
@@ -273,5 +306,3 @@ class User
         $stm->execute([$id]);
     }
 }
-
-

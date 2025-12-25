@@ -11,8 +11,8 @@ function get_mail() {
     $m->Host = 'smtp.gmail.com';
     $m->Port = 587;
     $m->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $m->Username = 'bait2173.email@gmail.com';
-    $m->Password = 'ncom fsil wjzk ptre';
+    $m->Username = $_ENV['MAIL_USERNAME'];
+    $m->Password = $_ENV['MAIL_PASSWORD'];
     $m->CharSet = 'utf-8';
     $m->setFrom($m->Username, '🚽 Daily Bowls');
     $m->isHTML(true);
@@ -23,6 +23,6 @@ function render_ereceipt(array $order, array $user): string
 {
     ob_start();
     extract(['order' => $order, 'user' => $user]);
-    require __DIR__ . '/../views/orders/ereceipt.php';
+    require __DIR__ . '/../../views/orders/ereceipt.php';
     return ob_get_clean();
 }

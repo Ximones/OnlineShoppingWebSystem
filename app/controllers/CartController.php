@@ -12,7 +12,7 @@ use App\Models\Payment;
 use App\Models\UserVoucher;
 use App\Services\StripeService;
 
-require_once __DIR__ . '/../lib/mail_helper.php';
+require_once __DIR__ . '/../lib/mail/mail_helper.php';
 
 class CartController extends Controller
 {

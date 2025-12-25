@@ -6,6 +6,8 @@ use App\Core\Controller;
 use App\Models\PasswordReset;
 use App\Models\User;
 
+require_once __DIR__ . '/../lib/mail/mail_helper.php';
+
 class AuthController extends Controller
 {
     private User $users;
@@ -19,55 +21,55 @@ class AuthController extends Controller
 
     public function login(): void
     {
-        
         if (is_post() && validate([
             'email' => ['required' => 'Email is required.', 'email' => 'Email format invalid.'],
             'password' => ['required' => 'Password is required.'],
-            ])) {
-                
-                $user = $this->users->findByEmail(post('email'));
+        ])) {
 
-        if ($user) {
-            // Check if user is blocked
-            if (($user['status'] ?? 'active') === 'blocked') {
-                flash('danger', 'Your account has been blocked. Please contact support.');
-                $this->render('auth/login');
-                return;
-            }
+            $user = $this->users->findByEmail(post('email'));
 
-            if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
-                $remaining = strtotime($user['lockout_until']) - time();
-                flash('danger', "Too many attempts. Locked for another $remaining seconds.");
-                $this->render('auth/login');
-                return;
-            }
-
-            if (password_verify(post('password'), $user['password_hash'])) {
-                $this->users->resetLockout($user['id']);
-                auth_login($user);
-                flash('success', 'Welcome back, ' . $user['name'] . '!');
-                redirect('?module=shop&action=home');
-            } else {
-                $newAttempts = $user['login_attempts'] + 1;
-                $lockoutTime = null;
-
-                if ($newAttempts >= 3) {
-                    $lockoutTime = date('Y-m-d H:i:s', strtotime('+1 minute'));
-                    flash('danger', 'Account locked for 1 minute due to 3 failed attempts.');
-                } else {
-                    $remaining = 3 - $newAttempts;
-                    flash('danger', "Invalid credentials. $remaining attempts remaining.");
+            if ($user) {
+                // Check if user is blocked
+                if (($user['status'] ?? 'active') === 'blocked') {
+                    flash('danger', 'Your account has been blocked. Please contact support.');
+                    $this->render('auth/login');
+                    return;
                 }
 
-                $this->users->updateLockout($user['id'], $newAttempts, $lockoutTime);
+                if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
+                    $remaining = strtotime($user['lockout_until']) - time();
+                    flash('danger', "Too many attempts. Locked for another $remaining seconds.");
+                    $this->render('auth/login');
+                    return;
+                }
+
+                if (password_verify(post('password'), $user['password_hash'])) {
+                    $this->users->resetLockout($user['id']);
+                    auth_login($user);
+                    flash('success', 'Welcome back, ' . $user['name'] . '!');
+                    redirect('?module=shop&action=home');
+                } else {
+                    $newAttempts = $user['login_attempts'] + 1;
+                    $lockoutTime = null;
+
+                    if ($newAttempts >= 3) {
+                        $lockoutTime = date('Y-m-d H:i:s', strtotime('+1 minute'));
+                        flash('danger', 'Account locked for 1 minute due to 3 failed attempts.');
+                    } else {
+                        $remaining = 3 - $newAttempts;
+                        flash('danger', "Invalid credentials. $remaining attempts remaining.");
+                    }
+
+                    $this->users->updateLockout($user['id'], $newAttempts, $lockoutTime);
+                }
+            } else {
+                flash('danger', 'Invalid credentials.');
             }
-        } else {
-            flash('danger', 'Invalid credentials.');
         }
+
+        $this->render('auth/login');
     }
 
-    $this->render('auth/login');
-}
     public function logout(): void
     {
         auth_logout();
@@ -106,17 +108,37 @@ class AuthController extends Controller
 
     public function forgot(): void
     {
-        if (is_post() && validate([
-            'email' => ['required' => 'Email is required.', 'email' => 'Email format invalid.'],
-        ])) {
-            $user = $this->users->findByEmail(post('email'));
-            if ($user) {
-                $token = $this->resets->create($user['id']);
-                // For template purposes we simply flash the token.
-                flash('success', "Reset token: $token");
-            } else {
-                flash('danger', 'Account not found.');
+        // If already logged in, redirect to home
+        if (auth_id()) {
+            redirect('?module=shop&action=catalog');
+        }
+
+        if (is_post()) {
+            $email = trim((string) post('email', ''));
+
+            if (empty($email)) {
+                flash('danger', 'Please enter your email address.');
+                redirect('?module=auth&action=forgot');
             }
+
+            $user = $this->users->findByEmail($email);
+
+            // For security, always show success message even if email doesn't exist
+            // This prevents email enumeration attacks
+            if ($user) {
+                // Generate a unique reset token
+                $resetToken = bin2hex(random_bytes(32));
+                $expiresAt = date('Y-m-d H:i:s', strtotime('+1 hour'));
+
+                // Store token in database
+                $this->users->saveResetToken($user['id'], $resetToken, $expiresAt);
+
+                // Send reset email
+                $this->sendPasswordResetEmail($user, $resetToken);
+            }
+
+            flash('success', 'If an account exists with this email, a password reset link has been sent. Please check your inbox.');
+            redirect('?module=auth&action=login');
         }
 
         $this->render('auth/forgot');
@@ -124,29 +146,79 @@ class AuthController extends Controller
 
     public function reset(): void
     {
+        // If already logged in, redirect to home
+        if (auth_id()) {
+            redirect('?module=shop&action=catalog');
+        }
+
         $token = get('token', '');
-        if (!$token) {
-            flash('danger', 'Reset token missing.');
+
+        if (empty($token)) {
+            flash('danger', 'Invalid or missing reset token.');
             redirect('?module=auth&action=forgot');
         }
 
-        if (is_post() && validate([
-            'password' => ['required' => 'Password is required.', 'min:8' => 'Password too short.'],
-            'confirm_password' => ['same:password' => 'Passwords do not match.'],
-        ])) {
-            $row = $this->resets->consume($token);
-            if (!$row) {
-                flash('danger', 'Invalid or expired token.');
-                redirect('?module=auth&action=forgot');
-            } else {
-                $this->users->updatePassword($row['user_id'], password_hash(post('password'), PASSWORD_DEFAULT));
-                flash('success', 'Password updated. You can login now.');
+        // Verify token exists and hasn't expired
+        $resetRecord = $this->users->getResetToken($token);
+        if (!$resetRecord) {
+            flash('danger', 'Reset link has expired. Please request a new one.');
+            redirect('?module=auth&action=forgot');
+        }
+
+        if (is_post()) {
+            $password = post('password', '');
+            $confirmPassword = post('confirm_password', '');
+
+            if (validate([
+                'password' => [
+                    'required' => 'Password is required.',
+                    'min_length' => ['Password must be at least 8 characters.', 8]
+                ],
+                'confirm_password' => ['required' => 'Please confirm your password.']
+            ])) {
+                if ($password !== $confirmPassword) {
+                    flash('danger', 'Passwords do not match.');
+                    redirect('?module=auth&action=reset&token=' . encode($token));
+                }
+
+                // Update user password
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+                $this->users->updatePassword($resetRecord['user_id'], $hashedPassword);
+
+                // Delete reset token
+                $this->users->deleteResetToken($token);
+
+                flash('success', 'Your password has been reset successfully. Please log in with your new password.');
                 redirect('?module=auth&action=login');
+            } else {
+                redirect('?module=auth&action=reset&token=' . encode($token));
             }
         }
 
         $this->render('auth/reset', compact('token'));
     }
+
+    private function sendPasswordResetEmail(array $user, string $token): void
+    {
+        try {
+            $resetLink = url('?module=auth&action=reset&token=' . urlencode($token));
+
+            $mail = get_mail();
+            $mail->addAddress($user['email'], $user['name']);
+            $mail->Subject = 'Password Reset Request - Daily Bowls';
+            $mail->Body = $this->renderPasswordResetEmail($user, $resetLink);
+            $mail->AltBody = "Click here to reset your password: " . $resetLink . "\n\nThis link expires in 1 hour.";
+            $mail->send();
+        } catch (\Throwable $e) {
+            error_log('Password reset email failed: ' . $e->getMessage());
+        }
+    }
+
+    private function renderPasswordResetEmail(array $user, string $resetLink): string
+    {
+        ob_start();
+        extract(['user' => $user, 'resetLink' => $resetLink]);
+        require __DIR__ . '/../views/auth/reset_mail.php';
+        return ob_get_clean();
+    }
 }
-
-
