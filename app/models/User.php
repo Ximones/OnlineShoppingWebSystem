@@ -15,6 +15,25 @@ class User
         $this->db = db();
     }
 
+    public function saveVerificationToken(int $userId, string $token): void
+    {
+        $stmt = $this->db->prepare("UPDATE users SET verification_token = ? WHERE id = ?");
+        $stmt->execute([$token, $userId]);
+    }
+
+    public function findByVerificationToken(string $token): ?array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE verification_token = ? LIMIT 1");
+        $stmt->execute([$token]);
+        return $stmt->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
+
+    public function markEmailAsVerified(int $id): void
+    {
+        $stmt = $this->db->prepare("UPDATE users SET email_verified_at = NOW(), verification_token = NULL WHERE id = ?");
+        $stmt->execute([$id]);
+    }
+
     public function find(int $id): ?array
     {
         $stm = $this->db->prepare('SELECT * FROM users WHERE id = ?');

@@ -36,6 +36,12 @@ class AuthController extends Controller
                     return;
                 }
 
+                if (empty($user['email_verified_at'])) {
+                    flash('warning', 'Please verify your email address before logging in.');
+                    $this->render('auth/login');
+                    return;
+                }
+
                 if ($user['lockout_until'] && strtotime($user['lockout_until']) > time()) {
                     $remaining = strtotime($user['lockout_until']) - time();
                     flash('danger', "Too many attempts. Locked for another $remaining seconds.");
@@ -96,14 +102,70 @@ class AuthController extends Controller
                     'password_hash' => password_hash(post('password'), PASSWORD_DEFAULT),
                     'role' => 'member',
                 ]);
+
+                // Generate and save verification token
+                $token = bin2hex(random_bytes(32));
+                $this->users->saveVerificationToken($id, $token);
+
+                // Send email
                 $user = $this->users->find($id);
-                auth_login($user);
-                flash('success', 'Registration successful.');
-                redirect('?module=profile&action=index');
+                $this->sendVerificationEmail($user, $token);
+
+                // DO NOT LOGIN. Redirect to login page.
+                flash('success', 'Registration successful! Please check your email to verify your account.');
+                redirect('?module=auth&action=login');
             }
         }
 
         $this->render('auth/register');
+    }
+
+    // VERIFY FUNCTION: Handles the link click
+    public function verify(): void
+    {
+        $token = get('token', '');
+
+        if (empty($token)) {
+            flash('danger', 'Invalid verification link.');
+            redirect('?module=auth&action=login');
+        }
+
+        $user = $this->users->findByVerificationToken($token);
+
+        if (!$user) {
+            flash('danger', 'Invalid or expired verification link.');
+            redirect('?module=auth&action=login');
+        }
+
+        // Mark as verified
+        $this->users->markEmailAsVerified($user['id']);
+
+        flash('success', 'Email verified! You can now log in.');
+        redirect('?module=auth&action=login');
+    }
+
+    // HELPER: Sends the email
+    private function sendVerificationEmail(array $user, string $token): void
+    {
+        try {
+            $verifyLink = url('?module=auth&action=verify&token=' . urlencode($token));
+
+            $mail = get_mail();
+            $mail->addAddress($user['email'], $user['name']);
+            $mail->Subject = 'Verify Your Email - Daily Bowls';
+            // You can create a view for this, but simple HTML works for now
+            $mail->Body = "
+                <h1>Welcome to Daily Bowls!</h1>
+                <p>Hi " . htmlspecialchars($user['name']) . ",</p>
+                <p>Please click the link below to verify your email address and activate your account:</p>
+                <p><a href='" . $verifyLink . "'>Verify Email Address</a></p>
+                <p>If you did not create an account, no further action is required.</p>
+            ";
+            $mail->AltBody = "Please copy this link to verify your account: " . $verifyLink;
+            $mail->send();
+        } catch (\Throwable $e) {
+            error_log('Verification email failed: ' . $e->getMessage());
+        }
     }
 
     public function forgot(): void

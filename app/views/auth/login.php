@@ -10,7 +10,7 @@
         <?php html_password('password', ['required' => 'required']); ?>
         <?php err('password'); ?>
 
-        <button class="btn primary">Login</button>
+        <button class="btn primary" style="margin-top: 3%;">Login</button>
         <p>
             <a href="?module=auth&action=forgot">Forgot password?</a>
         </p>

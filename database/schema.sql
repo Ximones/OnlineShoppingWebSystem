@@ -17,6 +17,10 @@ CREATE TABLE users (
     address TEXT,
     avatar VARCHAR(255),
     password_hash VARCHAR(255) NOT NULL,
+    verification_token VARCHAR(255) DEFAULT NULL,
+    email_verified_at TIMESTAMP NULL DEFAULT NULL,
+    login_attempts INT NOT NULL DEFAULT 0,
+    lockout_until DATETIME DEFAULT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     reward_points DECIMAL(10,2) NOT NULL DEFAULT 0,
     reward_tier VARCHAR(20) NOT NULL DEFAULT 'bronze',
@@ -58,6 +62,16 @@ CREATE TABLE products (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES categories(id)
+);
+
+CREATE TABLE user_favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    product_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY user_product_unique (user_id, product_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
 );
 
 CREATE TABLE product_photos (
@@ -189,4 +203,18 @@ CREATE TABLE user_vouchers (
     order_id INT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE saved_addresses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    address TEXT NOT NULL,
+    is_default TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
 );

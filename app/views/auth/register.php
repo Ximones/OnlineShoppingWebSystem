@@ -22,7 +22,7 @@
         <?php html_password('confirm_password', ['required' => 'required']); ?>
         <?php err('confirm_password'); ?>
 
-        <button class="btn primary">Register</button>
+        <button class="btn primary" style="margin-top: 3%;">Register</button>
         <p>
             Already have an account? <a href="?module=auth&action=login">Login</a>
         </p>
