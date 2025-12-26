@@ -1,4 +1,6 @@
 <?php $title = 'Register'; ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+
 <section class="auth-card">
     <h1>Create Account</h1>
     <form method="post">
@@ -21,6 +23,11 @@
         <label for="confirm_password">Confirm Password</label>
         <?php html_password('confirm_password', ['required' => 'required']); ?>
         <?php err('confirm_password'); ?>
+
+        <div style="margin: 15px 0;">
+            <div class="g-recaptcha" data-sitekey="<?= $_ENV['RECAPTCHA_SITE_KEY'] ?>"></div>
+            <?php err('captcha'); ?>
+        </div>
 
         <button class="btn primary" style="margin-top: 3%;">Register</button>
         <p>
