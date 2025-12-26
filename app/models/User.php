@@ -288,6 +288,19 @@ class User
         if ($user && $user['role'] === 'admin') {
             throw new \RuntimeException('Cannot delete admin users.');
         }
+        
+        // Check for incomplete orders (pending, processing, shipped)
+        $incompleteStatuses = ['pending', 'processing', 'shipped'];
+        $placeholders = implode(',', array_fill(0, count($incompleteStatuses), '?'));
+        $stm = $this->db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status IN ($placeholders)");
+        $params = array_merge([$id], $incompleteStatuses);
+        $stm->execute($params);
+        $incompleteCount = (int) $stm->fetchColumn();
+        
+        if ($incompleteCount > 0) {
+            throw new \RuntimeException("Cannot delete member. This member has $incompleteCount incomplete order(s) (pending, processing, or shipped). Please complete or cancel these orders first.");
+        }
+        
         $stm = $this->db->prepare('DELETE FROM users WHERE id = ?');
         $stm->execute([$id]);
     }
