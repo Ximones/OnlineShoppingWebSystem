@@ -5,13 +5,6 @@
         </a>
 
         <nav class="nav">
-            <?php if (auth_user()): ?>
-                <span class="mode-indicator mode-indicator-store">
-                    <i class="fas fa-store"></i>
-                    <span>Store Mode</span>
-                </span>
-            <?php endif; ?>
-            
             <a href="?module=shop&action=catalog">Products</a>
 
             <?php if (auth_user()): ?>
