@@ -42,12 +42,22 @@ class Order
             $pointsRedeemed = max(0, $pointsRedeemed);
             $discount = $pointsRedeemed / 10;
 
-            $shippingFee = max(0.0, (float)($options['shipping_fee'] ?? 0));
-            $voucherDiscount = max(0.0, (float)($options['voucher_discount'] ?? 0));
+            // Get shipping fee and discounts
+            // shipping_fee in options is the EFFECTIVE fee (after shipping voucher discount)
+            $effectiveShippingFee = max(0.0, (float)($options['shipping_fee'] ?? 0));
+            $voucherDiscount = max(0.0, (float)($options['voucher_discount'] ?? 0)); // Merchandise discount only
+            $shippingVoucherDiscount = max(0.0, (float)($options['voucher_shipping_discount'] ?? 0)); // Shipping discount
             $pointsDiscount = $discount; // This is the points discount calculated above
 
+            // Calculate base total (subtotal minus merchandise discounts)
             $baseTotal = max(0, $total - $discount - $voucherDiscount);
-            $payableTotal = $baseTotal + $shippingFee;
+            
+            // Payable total = base total + effective shipping fee (already has shipping discount applied)
+            $payableTotal = $baseTotal + $effectiveShippingFee;
+            
+            // Store shipping voucher discount in voucher_discount field temporarily if it's a shipping-only voucher
+            // We'll use this to calculate backwards in detail() method
+            // Actually, we can't store it separately without a new column, so we'll calculate it in detail()
 
             $orderStatus = $options['order_status'] ?? 'pending';
 
@@ -207,13 +217,29 @@ class Order
         $order['voucher_discount'] = (float)($order['voucher_discount'] ?? 0);
         $order['shipping_method'] = $order['shipping_method'] ?? 'Standard Shipping (3-5 days)';
 
-        // Calculate shipping voucher discount if voucher was used
+        // Calculate original shipping fee from shipping method
+        $shippingMethodLabels = [
+            'Standard Shipping (3-5 days)' => 10.0,
+            'Express Shipping (1-2 days)' => 25.0,
+            'Self Pickup (Free)' => 0.0,
+        ];
+        $originalShippingFee = $shippingMethodLabels[$order['shipping_method']] ?? 10.0;
+
+        // Calculate effective shipping fee from order total
+        // Formula: total = subtotal - voucher_discount - points_discount + effective_shipping_fee
+        // So: effective_shipping_fee = total - subtotal + voucher_discount + points_discount
+        $subtotal = $order['subtotal'];
+        $total = $order['total_amount'];
+        $effectiveShippingFee = max(0, $total - $subtotal + $order['voucher_discount'] + $order['points_discount']);
+        $order['shipping_fee'] = $effectiveShippingFee;
+
+        // Calculate shipping voucher discount
         $order['shipping_voucher_discount'] = 0.0;
 
         if ($order['voucher']) {
             $voucher = $order['voucher'];
 
-            // If voucher discount wasn't stored (for old orders), calculate it
+            // If voucher discount wasn't stored (for old orders), calculate merchandise discount
             if ($order['voucher_discount'] == 0 && ($voucher['type'] === 'amount' || $voucher['type'] === 'percent')) {
                 $subtotal = $order['subtotal'];
 
@@ -228,32 +254,17 @@ class Order
                 }
             }
 
-            // Check for shipping vouchers
+            // Calculate shipping voucher discount based on voucher type
             if ($voucher['type'] === 'shipping_amount') {
-                $order['shipping_voucher_discount'] = (float)$voucher['value'];
+                // Shipping amount discount: min of value and original shipping fee
+                $order['shipping_voucher_discount'] = min((float)$voucher['value'], $originalShippingFee);
             } elseif ($voucher['type'] === 'free_shipping') {
-                $order['shipping_voucher_discount'] = 999999; // Will be capped by actual shipping fee
+                // Free shipping: discount equals original shipping fee
+                $order['shipping_voucher_discount'] = $originalShippingFee;
             }
         } elseif ($order['voucher_discount'] > 0) {
             // Voucher was used but record not found - discount is still stored, so show it
             // This handles cases where voucher record might be missing
-        }
-
-        // Calculate shipping fee from stored values
-        // Formula: total = subtotal - voucher_discount - points_discount + shipping_fee - shipping_voucher_discount
-        // So: shipping_fee = total - subtotal + voucher_discount + points_discount + shipping_voucher_discount
-        $subtotal = $order['subtotal'];
-        $total = $order['total_amount'];
-
-        $order['shipping_fee'] = max(0, $total - $subtotal + $order['voucher_discount'] + $order['points_discount']);
-
-        // Apply shipping voucher discount if applicable
-        if ($order['shipping_voucher_discount'] > 0) {
-            if ($order['voucher']['type'] === 'free_shipping') {
-                $order['shipping_fee'] = 0;
-            } else {
-                $order['shipping_fee'] = max(0, $order['shipping_fee'] - $order['shipping_voucher_discount']);
-            }
         }
 
         return $order;

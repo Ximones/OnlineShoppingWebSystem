@@ -354,9 +354,10 @@ class CartController extends Controller
                 'item_ids' => array_column($items, 'id'),
                 'points_redeemed' => $pricingSummary['points_redeemed'],
                 'points_discount' => $pricingSummary['points_discount'],
-                'shipping_fee' => $pricingSummary['shipping_fee'],
+                'shipping_fee' => $pricingSummary['shipping_fee'], // Effective shipping fee (after discount)
                 'shipping_method' => $shippingMethod,
-                'voucher_discount' => $pricingSummary['voucher_discount'],
+                'voucher_discount' => $pricingSummary['voucher_discount'], // Merchandise discount only
+                'voucher_shipping_discount' => $pricingSummary['voucher_shipping_discount'] ?? 0, // Shipping discount
                 'voucher_code' => $pricingSummary['voucher_code'],
                 'voucher_id' => $selectedVoucher ? $selectedVoucher['id'] : null, // Store user_voucher id for later
                 'order_status' => $orderStatus,

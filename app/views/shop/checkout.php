@@ -290,9 +290,16 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
         </p>
     <?php endif; ?>
     <?php if (!empty($pricingSummary['voucher_code'])): ?>
-        <p class="grand" style="color: #0e3d73;">
-            Voucher "<?= encode($pricingSummary['voucher_code']); ?>" applied: -RM <?= number_format($pricingSummary['voucher_discount'], 2); ?>
-        </p>
+        <?php if (($pricingSummary['voucher_discount'] ?? 0) > 0): ?>
+            <p class="grand" style="color: #0e3d73;">
+                Voucher "<?= encode($pricingSummary['voucher_code']); ?>" applied: -RM <?= number_format($pricingSummary['voucher_discount'], 2); ?>
+            </p>
+        <?php endif; ?>
+        <?php if (($pricingSummary['voucher_shipping_discount'] ?? 0) > 0): ?>
+            <p class="grand" style="color: #0e3d73;">
+                Shipping Discount "<?= encode($pricingSummary['voucher_code']); ?>": -RM <?= number_format($pricingSummary['voucher_shipping_discount'], 2); ?>
+            </p>
+        <?php endif; ?>
     <?php endif; ?>
     <p class="grand">Shipping: RM <?= number_format($pricingSummary['shipping_fee'], 2); ?></p>
 
