@@ -7,6 +7,7 @@ use App\Models\PasswordReset;
 use App\Models\User;
 
 require_once __DIR__ . '/../lib/mail/mail_helper.php';
+require_once __DIR__ . '/../lib/captcha.php'; // Load the helper file
 
 class AuthController extends Controller
 {
@@ -101,6 +102,18 @@ class AuthController extends Controller
             'confirm_password' => ['same:password' => 'Passwords do not match.'],
         ])) {
 
+            // CAPTCHA Verification Logic
+
+            $captchaResponse = $_POST['g-recaptcha-response'] ?? '';
+
+            if (!verify_captcha($captchaResponse)) {
+                // If this fails, we STOP here.
+                // No user is created. No email is sent.
+                flash('danger', 'Please complete the CAPTCHA check.');
+                $this->render('auth/register');
+                return;
+            }
+
             $email = post('email');
             $existingUser = $this->users->findByEmail($email);
 
@@ -109,7 +122,7 @@ class AuthController extends Controller
                 // Case 1: User is already fully verified.
                 if (!empty($existingUser['email_verified_at'])) {
                     flash('danger', 'Email already registered. Please log in.');
-                    $this->render('auth/register');
+                    $this->render('auth/login');
                     return;
                 }
 
