@@ -1,3 +1,34 @@
+-- ============================================
+-- Online Shopping Web System - Database Schema
+-- Final consolidated version with all migrations applied
+-- ============================================
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
+
+-- Drop existing tables if they exist (for clean initialization)
+DROP TABLE IF EXISTS tracking_details;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS product_reviews;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS cart_items;
+DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS product_photos;
+DROP TABLE IF EXISTS user_favorites;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS saved_addresses;
+DROP TABLE IF EXISTS user_vouchers;
+DROP TABLE IF EXISTS vouchers;
+DROP TABLE IF EXISTS password_resets;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS roles;
+
+-- ============================================
+-- Core Tables
+-- ============================================
+
 CREATE TABLE roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(20) UNIQUE NOT NULL,
@@ -19,6 +50,8 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     verification_token VARCHAR(255) DEFAULT NULL,
     email_verified_at TIMESTAMP NULL DEFAULT NULL,
+    reset_token VARCHAR(255) NULL UNIQUE,
+    reset_token_expires_at DATETIME NULL,
     login_attempts INT NOT NULL DEFAULT 0,
     lockout_until DATETIME DEFAULT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -28,7 +61,9 @@ CREATE TABLE users (
     last_check_in_at DATETIME NULL,
     paylater_credit_limit DECIMAL(10,2) NOT NULL DEFAULT 10000.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_role (role)
 );
 
 CREATE TABLE password_resets (
@@ -38,13 +73,16 @@ CREATE TABLE password_resets (
     expires_at DATETIME NOT NULL,
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_token (token),
+    INDEX idx_user_id (user_id)
 );
 
 CREATE TABLE categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
+    image_url VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -55,13 +93,23 @@ CREATE TABLE products (
     sku VARCHAR(50) NOT NULL,
     name VARCHAR(200) NOT NULL,
     description TEXT,
+    color VARCHAR(50),
+    size VARCHAR(50),
+    pit_spacing VARCHAR(50),
+    installation_type VARCHAR(50),
+    flushing_method VARCHAR(50),
+    bowl_shape VARCHAR(50),
+    material VARCHAR(100),
+    warranty_years INT DEFAULT 2,
     price DECIMAL(10,2) NOT NULL,
     stock INT NOT NULL DEFAULT 0,
-    photo VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    FOREIGN KEY (category_id) REFERENCES categories(id),
+    INDEX idx_category_id (category_id),
+    INDEX idx_sku (sku),
+    INDEX idx_status (status)
 );
 
 CREATE TABLE user_favorites (
@@ -71,7 +119,9 @@ CREATE TABLE user_favorites (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY user_product_unique (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_product_id (product_id)
 );
 
 CREATE TABLE product_photos (
@@ -82,7 +132,8 @@ CREATE TABLE product_photos (
     display_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_product_id (product_id)
+    INDEX idx_product_id (product_id),
+    INDEX idx_is_primary (is_primary)
 );
 
 CREATE TABLE carts (
@@ -91,7 +142,9 @@ CREATE TABLE carts (
     status VARCHAR(20) NOT NULL DEFAULT 'open',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status)
 );
 
 CREATE TABLE cart_items (
@@ -102,7 +155,9 @@ CREATE TABLE cart_items (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id),
-    UNIQUE KEY uniq_cart_product (cart_id, product_id)
+    UNIQUE KEY uniq_cart_product (cart_id, product_id),
+    INDEX idx_cart_id (cart_id),
+    INDEX idx_product_id (product_id)
 );
 
 CREATE TABLE orders (
@@ -120,7 +175,10 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE SET NULL
+    FOREIGN KEY (cart_id) REFERENCES carts(id) ON DELETE SET NULL,
+    INDEX idx_user_id (user_id),
+    INDEX idx_status (status),
+    INDEX idx_created_at (created_at)
 );
 
 CREATE TABLE order_items (
@@ -130,7 +188,9 @@ CREATE TABLE order_items (
     quantity INT NOT NULL,
     unit_price DECIMAL(10,2) NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    INDEX idx_order_id (order_id),
+    INDEX idx_product_id (product_id)
 );
 
 CREATE TABLE product_reviews (
@@ -145,7 +205,10 @@ CREATE TABLE product_reviews (
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    UNIQUE KEY uniq_review (product_id, user_id, order_id)
+    UNIQUE KEY uniq_review (product_id, user_id, order_id),
+    INDEX idx_product_id (product_id),
+    INDEX idx_user_id (user_id),
+    INDEX idx_rating (rating)
 );
 
 CREATE TABLE payments (
@@ -161,7 +224,11 @@ CREATE TABLE payments (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     tenure_months INT NULL,
     interest_rate DECIMAL(5,2) NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    INDEX idx_order_id (order_id),
+    INDEX idx_status (status),
+    INDEX idx_payment_method (payment_method),
+    INDEX idx_billing_due_date (billing_due_date)
 );
 
 CREATE TABLE tracking_details (
@@ -171,7 +238,9 @@ CREATE TABLE tracking_details (
     location VARCHAR(200),
     remarks TEXT,
     tracking_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    INDEX idx_order_id (order_id),
+    INDEX idx_tracking_date (tracking_date)
 );
 
 CREATE TABLE vouchers (
@@ -179,7 +248,7 @@ CREATE TABLE vouchers (
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
     description TEXT,
-    type VARCHAR(20) NOT NULL, -- amount, percent, shipping_amount, free_shipping
+    type VARCHAR(20) NOT NULL COMMENT 'amount, percent, shipping_amount, free_shipping',
     value DECIMAL(10,2) NOT NULL DEFAULT 0,
     min_subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
     max_discount DECIMAL(10,2) NULL,
@@ -190,19 +259,25 @@ CREATE TABLE vouchers (
     end_at DATETIME NULL,
     is_active TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_code (code),
+    INDEX idx_is_active (is_active),
+    INDEX idx_start_end (start_at, end_at)
 );
 
 CREATE TABLE user_vouchers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     voucher_id INT NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'active', -- active, used, expired
+    status VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT 'active, used, expired',
     claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     used_at DATETIME NULL,
     order_id INT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE
+    FOREIGN KEY (voucher_id) REFERENCES vouchers(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id),
+    INDEX idx_voucher_id (voucher_id),
+    INDEX idx_status (status)
 );
 
 CREATE TABLE saved_addresses (
@@ -216,5 +291,6 @@ CREATE TABLE saved_addresses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id)
+    INDEX idx_user_id (user_id),
+    INDEX idx_is_default (is_default)
 );
