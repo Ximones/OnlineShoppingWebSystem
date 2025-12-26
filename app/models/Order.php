@@ -31,16 +31,16 @@ class Order
             }, 0.0);
 
             $pointsRequested = (int) ($options['points_redeemed'] ?? 0);
-            $pointsRequested = (int) floor($pointsRequested / 100) * 100;
+            $pointsRequested = (int) floor($pointsRequested / 10) * 10;
 
             $stm = $pdo->prepare('SELECT reward_points FROM users WHERE id = ? FOR UPDATE');
             $stm->execute([$userId]);
             $currentPoints = (float) $stm->fetchColumn();
             $maxPointsFromBalance = (int) floor($currentPoints);
-            $maxPointsFromTotal = (int) floor($total * 100);
-            $pointsRedeemed = min($pointsRequested, $maxPointsFromBalance - ($maxPointsFromBalance % 100), $maxPointsFromTotal);
+            $maxPointsFromTotal = (int) floor($total * 10);
+            $pointsRedeemed = min($pointsRequested, $maxPointsFromBalance - ($maxPointsFromBalance % 10), $maxPointsFromTotal);
             $pointsRedeemed = max(0, $pointsRedeemed);
-            $discount = $pointsRedeemed / 100;
+            $discount = $pointsRedeemed / 10;
 
             $shippingFee = max(0.0, (float)($options['shipping_fee'] ?? 0));
             $voucherDiscount = max(0.0, (float)($options['voucher_discount'] ?? 0));

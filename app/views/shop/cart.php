@@ -5,7 +5,7 @@
     <?php else: ?>
         <?php
         $availablePoints = (int) floor((float)($user['reward_points'] ?? 0));
-        $maxRmFromPoints = (int) floor($availablePoints / 100);
+        $maxRmFromPoints = (int) floor($availablePoints / 10);
         ?>
         <form method="post" action="?module=cart&action=update" id="cart-form">
             <table class="table">
@@ -152,13 +152,13 @@
     }
 
     function calculateDeduction(selectedTotal) {
-        const maxRedeemableRm = Math.min(selectedTotal, Math.floor(availablePoints / 100));
+        const maxRedeemableRm = Math.min(selectedTotal, Math.floor(availablePoints / 10));
         if (!pointToggle || !pointToggle.checked) {
             return {discount: 0, pointsUsed: 0};
         }
         return {
             discount: maxRedeemableRm,
-            pointsUsed: maxRedeemableRm * 100
+            pointsUsed: maxRedeemableRm * 10
         };
     }
 

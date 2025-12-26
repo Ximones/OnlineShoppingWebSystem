@@ -473,9 +473,9 @@ class CartController extends Controller
     {
         $subtotal = array_reduce($items, fn($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
         $availablePoints = (int) floor((float) ($user['reward_points'] ?? 0));
-        $maxRedeemableRm = min($subtotal, (int) floor($availablePoints / 100));
-        $pointsRedeemed = $usePoints ? $maxRedeemableRm * 100 : 0;
-        $pointsDiscount = $pointsRedeemed / 100;
+        $maxRedeemableRm = min($subtotal, (int) floor($availablePoints / 10));
+        $pointsRedeemed = $usePoints ? $maxRedeemableRm * 10 : 0;
+        $pointsDiscount = $pointsRedeemed / 10;
 
         // Shipping
         if (!isset($this->shippingOptions[$shippingMethod])) {
