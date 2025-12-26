@@ -9,6 +9,10 @@ use function require_role;
 abstract class Controller {
     protected string $layout = 'layout/master';
 
+    public function is_active(string $moduleName): string {
+        return (isset($_GET['module']) && $_GET['module'] === $moduleName) ? 'active' : '';
+    }
+    
     protected function render(string $view, array $data = []): void {
         extract($data);
         $flashSuccess = flash('success');
