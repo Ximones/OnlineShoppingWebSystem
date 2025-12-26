@@ -2,7 +2,8 @@
 
 $_err = [];
 
-function validate(array $rules): bool {
+function validate(array $rules): bool
+{
     global $_err;
     $_err = [];
 
@@ -12,6 +13,27 @@ function validate(array $rules): bool {
             if ($rule === 'required' && $value === '') {
                 $_err[$key] = $message;
                 break;
+            }
+
+            if ($rule === 'unique' && is_callable($message)) {
+                $result = $message($value);
+                if ($result !== true) {
+                    $_err[$key] = $result;
+                    break;
+                }
+            }
+
+            if ($rule === 'numeric' && $value !== '' && !is_numeric($value)) {
+                $_err[$key] = $message;
+                break;
+            }
+
+            if (str_starts_with($rule, 'min_value:')) {
+                $min = (float) substr($rule, 10);
+                if (is_numeric($value) && (float)$value < $min) {
+                    $_err[$key] = $message;
+                    break;
+                }
             }
 
             if ($rule === 'email' && $value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
@@ -47,5 +69,3 @@ function validate(array $rules): bool {
 
     return empty($_err);
 }
-
-

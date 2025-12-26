@@ -46,11 +46,29 @@ class AdminProductController extends AdminController
         $this->requireAdmin();
         if (is_post() && validate([
             'name' => ['required' => 'Name is required.'],
-            'sku' => ['required' => 'SKU is required.'],
-            'price' => ['required' => 'Price is required.'],
-            'stock' => ['required' => 'Stock is required.'],
+            'sku' => [
+                'required' => 'SKU is required.',
+                'unique' => function ($value) {
+                    if ($this->products->skuExists($value)) {
+                        return 'This SKU already exists.';
+                    }
+                    return true;
+                }
+            ],
+            'price' => [
+                'required' => 'Price is required.',
+                'numeric' => 'Price must be a number.',
+                'min_value:0' => 'Price cannot be negative.'
+            ],
+
+            'stock' => [
+                'required' => 'Stock is required.',
+                'numeric' => 'Stock must be a number.',
+                'min_value:0' => 'Stock cannot be negative.'
+            ],
             'category_id' => ['required' => 'Category is required.'],
         ])) {
+
             $productId = $this->products->create([
                 'name' => post('name'),
                 'sku' => post('sku'),
@@ -84,9 +102,25 @@ class AdminProductController extends AdminController
         if (is_post()) {
             if (validate([
                 'name' => ['required' => 'Name is required.'],
-                'sku' => ['required' => 'SKU is required.'],
-                'price' => ['required' => 'Price is required.'],
-                'stock' => ['required' => 'Stock is required.'],
+                'sku' => [
+                    'required' => 'SKU is required.',
+                    'unique' => function ($value) use ($id) {
+                        if ($this->products->skuExists($value, $id)) {
+                            return 'This SKU already exists.';
+                        }
+                        return true;
+                    }
+                ],
+                'price' => [
+                    'required' => 'Price is required.',
+                    'numeric' => 'Price must be a number.',
+                    'min_value:0' => 'Price cannot be negative.'
+                ],
+                'stock' => [
+                    'required' => 'Stock is required.',
+                    'numeric' => 'Stock must be a number.',
+                    'min_value:0' => 'Stock cannot be negative.'
+                ],
                 'category_id' => ['required' => 'Category is required.'],
             ])) {
                 $this->products->update($id, [
