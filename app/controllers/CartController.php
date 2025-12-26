@@ -221,6 +221,12 @@ class CartController extends Controller
 
             $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
 
+            if ($pricingSummary['payable_total'] > 999999.99) {
+                flash('danger', 'Orders exceed standard purchase. Please contact support to arrange a wire transfer.');
+                redirect('?module=cart&action=index');
+                return;
+            }
+
             $paymentMethod = post('payment_method', 'Stripe');
             $paylaterTenure = (int) post('paylater_tenure', 3);
             if (!in_array($paylaterTenure, [3, 6, 12], true)) {
