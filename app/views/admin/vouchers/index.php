@@ -1,4 +1,7 @@
 <?php $title = 'Manage Vouchers'; ?>
+<?php
+$claimCounts = $claimCounts ?? [];
+?>
 
 <section class="panel">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -35,6 +38,7 @@
                     <th>Shipping Only</th>
                     <th>First Order Only</th>
                     <th>Available Qty</th>
+                    <th>Remaining</th>
                     <th>Status</th>
                     <th></th>
                 </tr>
@@ -53,6 +57,17 @@
                         <td><?= $v['is_shipping_only'] ? 'Yes' : 'No'; ?></td>
                         <td><?= $v['is_first_order_only'] ? 'Yes' : 'No'; ?></td>
                         <td><?= $v['max_claims'] !== null ? (int) $v['max_claims'] : 'Unlimited'; ?></td>
+                        <td>
+                            <?php
+                            if ($v['max_claims'] !== null) {
+                                $totalClaims = $claimCounts[$v['id']] ?? 0;
+                                $remaining = max(0, (int) $v['max_claims'] - $totalClaims);
+                                echo $remaining;
+                            } else {
+                                echo 'Unlimited';
+                            }
+                            ?>
+                        </td>
                         <td><?= $v['is_active'] ? 'Active' : 'Inactive'; ?></td>
                         <td>
                             <a class="btn small" href="?module=admin&resource=vouchers&action=edit&id=<?= $v['id']; ?>">Edit</a>

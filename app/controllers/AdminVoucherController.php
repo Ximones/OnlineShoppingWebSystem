@@ -4,14 +4,17 @@ namespace App\Controllers;
 
 use App\Core\AdminController;
 use App\Models\Voucher;
+use App\Models\UserVoucher;
 
 class AdminVoucherController extends AdminController
 {
     private Voucher $vouchers;
+    private UserVoucher $userVouchers;
 
     public function __construct()
     {
         $this->vouchers = new Voucher();
+        $this->userVouchers = new UserVoucher();
     }
 
     public function index(): void
@@ -19,7 +22,14 @@ class AdminVoucherController extends AdminController
         $this->requireAdmin();
         $search = get('keyword', '');
         $vouchers = $this->vouchers->all(['search' => $search]);
-        $this->render('admin/vouchers/index', compact('vouchers', 'search'));
+        
+        // Get claim counts for each voucher
+        $claimCounts = [];
+        foreach ($this->userVouchers->countsByVoucher() as $row) {
+            $claimCounts[(int) $row['voucher_id']] = (int) $row['total_claims'];
+        }
+        
+        $this->render('admin/vouchers/index', compact('vouchers', 'search', 'claimCounts'));
     }
 
     public function create(): void

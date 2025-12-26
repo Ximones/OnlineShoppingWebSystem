@@ -44,25 +44,35 @@ class UserVoucher
      */
     public function claim(int $userId, int $voucherId, ?int $maxClaims = null): string
     {
-        // Prevent duplicate claims (any status)
-        $stm = $this->db->prepare('SELECT COUNT(*) FROM user_vouchers WHERE user_id = ? AND voucher_id = ?');
-        $stm->execute([$userId, $voucherId]);
-        if ($stm->fetchColumn() > 0) {
-            return 'duplicate';
-        }
-
-        if ($maxClaims !== null) {
-            $stm = $this->db->prepare('SELECT COUNT(*) FROM user_vouchers WHERE voucher_id = ?');
-            $stm->execute([$voucherId]);
-            $totalClaims = (int) $stm->fetchColumn();
-            if ($totalClaims >= $maxClaims) {
-                return 'sold_out';
+        // Use transaction to prevent race conditions
+        $this->db->beginTransaction();
+        try {
+            // Prevent duplicate claims (any status)
+            $stm = $this->db->prepare('SELECT COUNT(*) FROM user_vouchers WHERE user_id = ? AND voucher_id = ?');
+            $stm->execute([$userId, $voucherId]);
+            if ($stm->fetchColumn() > 0) {
+                $this->db->rollBack();
+                return 'duplicate';
             }
-        }
 
-        $stm = $this->db->prepare('INSERT INTO user_vouchers (user_id, voucher_id, status) VALUES (?, ?, "active")');
-        $stm->execute([$userId, $voucherId]);
-        return 'ok';
+            if ($maxClaims !== null) {
+                $stm = $this->db->prepare('SELECT COUNT(*) FROM user_vouchers WHERE voucher_id = ?');
+                $stm->execute([$voucherId]);
+                $totalClaims = (int) $stm->fetchColumn();
+                if ($totalClaims >= $maxClaims) {
+                    $this->db->rollBack();
+                    return 'sold_out';
+                }
+            }
+
+            $stm = $this->db->prepare('INSERT INTO user_vouchers (user_id, voucher_id, status) VALUES (?, ?, "active")');
+            $stm->execute([$userId, $voucherId]);
+            $this->db->commit();
+            return 'ok';
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
     }
 
     public function findForUser(int $userId, int $userVoucherId): ?array

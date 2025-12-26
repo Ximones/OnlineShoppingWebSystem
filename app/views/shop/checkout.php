@@ -144,6 +144,15 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
                     if (!empty($uv['is_first_order_only']) && $orderCount > 0) {
                         $eligible = false;
                     }
+
+                    $statusText = '';
+                    if (!empty($uv['status']) && strtolower($uv['status']) === 'used') {
+                        $eligible = false;
+                        $statusText = ' (Used)';
+                    } elseif (!$eligible) {
+                        $statusText = ' (Not applicable)';
+                    }
+
                     $selected = $uv['code'] === $currentVoucher && $eligible;
                     ?>
                     <label class="voucher-chip <?= $selected ? 'is-selected' : ''; ?> <?= !$eligible ? 'is-disabled' : ''; ?>">
@@ -154,7 +163,7 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
                                <?= $selected ? 'checked' : ''; ?>
                                <?= !$eligible ? 'disabled' : ''; ?>>
                         <span><?= encode($uv['code']); ?></span>
-                        <small><?= encode($uv['name']); ?><?= !$eligible ? ' (Not applicable)' : ''; ?></small>
+                        <small><?= encode($uv['name'] . $statusText); ?></small>
                     </label>
                 <?php endforeach; ?>
             </div>
@@ -166,22 +175,23 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
     ?>
     <div class="checkout-card-group">
         <div class="checkout-card-header">Reward points</div>
-        <p class="grand" style="margin-bottom: 0;">
-            <label style="display: inline-flex; align-items: center; gap: 0.5rem;">
+        <div style="padding: 1.25rem; background: #ffffff; border-radius: var(--radius-sm); border: 1px solid var(--color-border-soft);">
+            <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer; <?= $maxRedeemableRm <= 0 ? 'opacity: 0.6;' : ''; ?>">
+                <div style="flex: 1;">
+                    <strong style="display: block; margin-bottom: 0.25rem;">Use reward points</strong>
+                    <small style="color: var(--color-text-muted);">
+                        You have <?= number_format($availablePoints, 0); ?> pts (up to RM <?= number_format($maxRedeemableRm, 2); ?> off)
+                    </small>
+                </div>
                 <input type="checkbox"
                        name="use_points"
                        form="checkout-form"
                        value="1"
                        <?= !empty($pricingSummary['use_points']) ? 'checked' : ''; ?>
-                       <?= $maxRedeemableRm <= 0 ? 'disabled' : ''; ?>>
-                <span>
-                    <strong>Use reward points</strong>
-                    <span style="font-size: 0.85rem; color: #555;">
-                        You have <?= number_format($availablePoints, 0); ?> pts (up to RM <?= number_format($maxRedeemableRm, 2); ?> off)
-                    </span>
-                </span>
+                       <?= $maxRedeemableRm <= 0 ? 'disabled' : ''; ?>
+                       style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
             </label>
-        </p>
+        </div>
     </div>
 
     <div class="checkout-card-group" style="margin-top: 1.5rem;">
@@ -281,6 +291,7 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
             Voucher "<?= encode($pricingSummary['voucher_code']); ?>" applied: -RM <?= number_format($pricingSummary['voucher_discount'], 2); ?>
         </p>
     <?php endif; ?>
+    <p class="grand">Shipping: RM <?= number_format($pricingSummary['shipping_fee'], 2); ?></p>
 
     <p class="grand"><strong>Total Payable: RM <?= number_format($pricingSummary['payable_total'], 2); ?></strong></p>
 </section>
