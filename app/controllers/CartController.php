@@ -307,21 +307,6 @@ class CartController extends Controller
                 $this->products->reduceStock($item['product_id'], $item['quantity']);
             }
 
-            // Send e-receipt email
-            $orderModel = new Order();
-            $orderDetail = $orderModel->detail($orderId);
-            $html = render_ereceipt($orderDetail, $user);
-
-            try {
-                $mail = get_mail();
-                $mail->addAddress($user['email'], $user['name']);
-                $mail->Subject = 'Your E-Receipt (Order #' . $orderId . ')';
-                $mail->Body = $html;
-                $mail->send();
-            } catch (\Throwable $e) {
-                error_log('Receipt email failed: ' . $e->getMessage());
-            }
-
             // Mark voucher as used if one was applied
             if ($selectedVoucher && !empty($pricingSummary['voucher_code'])) {
                 $this->userVouchers->markUsed($selectedVoucher['id'], $orderId);
@@ -369,7 +354,7 @@ class CartController extends Controller
                             'price_data' => [
                                 'currency' => 'myr',
                                 'product_data' => ['name' => $item['name']],
-                                'unit_amount' => (int)($item['price'] * 100),
+                                'unit_amount' => $amount * 100,
                             ],
                             'quantity' => (int)$item['quantity'],
                         ];
@@ -392,11 +377,21 @@ class CartController extends Controller
                     $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
                 }
             }
+
+            $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
+            
+            $orderModel = new Order();
+            $orderDetail = $orderModel->detail($orderId);
+            $html = render_ereceipt($orderDetail, $user);
+
+            $this->sendOrderReceipt($orderId);
+
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
             flash('success', 'Order placed successfully. Please check your email for your e-receipt.');
             redirect("?module=orders&action=detail&id=$orderId");
         }
 
+        // Render View
         $user = $this->users->find($userId);
         $savedAddresses = $this->savedAddresses->findByUser($userId);
         $userVouchers = $this->userVouchers->activeForUser($userId);
@@ -559,11 +554,18 @@ class CartController extends Controller
         $stripe = new StripeService();
 
         if ($stripe->isPaid($sessionId)) {
-            // Record payment and update order status
+            // Record Payment
             $amountPaid = $stripe->getAmount($sessionId);
             $methodLabel = $stripe->getPaymentMethodLabel($sessionId);
             $this->payments->create($orderId, $methodLabel, $amountPaid, $amountPaid, 'completed');
+
+            // Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
+
+            // Send E-Receipt Email
+            $this->sendOrderReceipt($orderId);
+
+            // Clear Session
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
 
             flash('success', 'Payment successful! Order confirmed.');
@@ -590,7 +592,8 @@ class CartController extends Controller
             }
         }
 
-        // Restore items to cart
+        // Restore Items to Cart (so user can try again)
+        $order = $this->orders->detail($orderId);
         if ($order && $order['user_id'] == $userId) {
             $cartId = $this->cart->activeCartId($userId);
             foreach ($order['items'] as $item) {
@@ -600,5 +603,37 @@ class CartController extends Controller
 
         flash('warning', 'Payment was cancelled. Your items have been restored to the cart.');
         redirect('?module=cart&action=checkout');
+    }
+
+    private function sendOrderReceipt(int $orderId): void
+    {
+        // 1. Fetch full order details (items, shipping, etc.)
+        $order = $this->orders->detail($orderId);
+        if (!$order) {
+            error_log("Receipt Error: Order #$orderId not found.");
+            return;
+        }
+
+        // 2. Fetch User to get current email
+        $user = $this->users->find($order['user_id']);
+        if (!$user) {
+            error_log("Receipt Error: User ID {$order['user_id']} not found.");
+            return;
+        }
+
+        // 3. Render HTML
+        // Ensure render_ereceipt exists (from mail_helper.php)
+        $html = render_ereceipt($order, $user);
+
+        // 4. Send Email
+        try {
+            $mail = get_mail();
+            $mail->addAddress($user['email'], $user['name']);
+            $mail->Subject = 'Your E-Receipt (Order #' . $orderId . ')';
+            $mail->Body = $html;
+            $mail->send();
+        } catch (\Throwable $e) {
+            error_log('Receipt email failed: ' . $e->getMessage());
+        }
     }
 }
