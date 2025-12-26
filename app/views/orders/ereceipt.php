@@ -81,29 +81,8 @@
 <body>
 
     <div class="container">
-        <?php
-        // Get logo path - use absolute path for PDF generation
-        // __DIR__ in this view file is app/views/orders/, so go up 2 levels to app/, then to logo/
-        $logoPath = __DIR__ . '/../../logo/dblogo.png';
-        // Also try absolute path from project root if relative doesn't work
-        if (!file_exists($logoPath)) {
-            $projectRoot = dirname(dirname(dirname(__DIR__)));
-            $logoPath = $projectRoot . '/app/logo/dblogo.png';
-        }
-        if (file_exists($logoPath)) {
-            // Convert to base64 for embedding in PDF
-            $logoData = base64_encode(file_get_contents($logoPath));
-            $logoMime = 'image/png';
-            $logoBase64 = 'data:' . $logoMime . ';base64,' . $logoData;
-        } else {
-            $logoBase64 = null;
-        }
-        ?>
-        <?php if ($logoBase64): ?>
-        <div style="text-align: center; margin-bottom: 20px;">
-            <img src="<?= $logoBase64; ?>" alt="Daily Bowls Logo" style="max-width: 200px; height: auto;">
-        </div>
-        <?php endif; ?>
+
+    <h1>🚽 Daily Bowls</h1>
 
         <h2>Thank you for your order, <?= htmlspecialchars($user['name']) ?>!</h2>
 
