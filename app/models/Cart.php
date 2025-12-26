@@ -46,7 +46,7 @@ class Cart
         return $stm->fetchAll();
     }
 
-    public function addItem(int $cartId, int $productId, int $quantity): void
+    public function addItem(int $cartId, int $productId, int $quantity): int
     {
         $stm = $this->db->prepare('SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ?');
         $stm->execute([$cartId, $productId]);
@@ -54,9 +54,11 @@ class Cart
         if ($item) {
             $stm = $this->db->prepare('UPDATE cart_items SET quantity = quantity + ? WHERE id = ?');
             $stm->execute([$quantity, $item['id']]);
+            return (int) $item['id'];
         } else {
             $stm = $this->db->prepare('INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)');
             $stm->execute([$cartId, $productId, $quantity]);
+            return (int) $this->db->lastInsertId();
         }
     }
 

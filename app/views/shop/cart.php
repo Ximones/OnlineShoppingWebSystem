@@ -105,8 +105,9 @@
                     </button>
                 </div>
             </div>
-            
-            <form id="batch-delete-form" method="post" action="?module=cart&action=batchRemove">
+        </form>
+        
+        <form id="batch-delete-form" method="post" action="?module=cart&action=batchRemove" style="display: none;">
         </form>
         <input type="hidden" id="available-points" value="<?= $availablePoints; ?>">
     <?php endif; ?>
@@ -187,12 +188,21 @@
         });
     }
 
+    function updateBatchDeleteButton() {
+        const checked = document.querySelectorAll('.item-select:checked');
+        const batchDeleteBtn = document.getElementById('batch-delete-btn');
+        if (batchDeleteBtn) {
+            batchDeleteBtn.style.display = checked.length > 0 ? 'inline-block' : 'none';
+        }
+    }
+
     getItemCheckboxes().forEach(function(cb) {
         cb.addEventListener('change', function() {
             if (!this.checked && selectAll) {
                 selectAll.checked = false;
             }
             refreshSummary();
+            updateBatchDeleteButton();
         });
     });
 
@@ -236,22 +246,17 @@ function batchDeleteItems() {
     }
 }
 
-// Show/hide batch delete button based on selection
-document.addEventListener('DOMContentLoaded', function() {
-    const batchDeleteBtn = document.getElementById('batch-delete-btn');
-    const checkboxes = document.querySelectorAll('.item-select');
-    
+// Initialize batch delete button visibility
+(function() {
     function updateBatchDeleteButton() {
         const checked = document.querySelectorAll('.item-select:checked');
+        const batchDeleteBtn = document.getElementById('batch-delete-btn');
         if (batchDeleteBtn) {
             batchDeleteBtn.style.display = checked.length > 0 ? 'inline-block' : 'none';
         }
     }
     
-    checkboxes.forEach(cb => {
-        cb.addEventListener('change', updateBatchDeleteButton);
-    });
-    
+    // Update on page load
     updateBatchDeleteButton();
-});
+})();
 </script>

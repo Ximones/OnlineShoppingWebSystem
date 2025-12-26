@@ -90,8 +90,16 @@ class CartController extends Controller
                 redirect('?module=shop&action=catalog');
             }
             $cartId = $this->cart->activeCartId(auth_id());
-            $this->cart->addItem($cartId, $productId, $quantity);
-            unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
+            $itemId = $this->cart->addItem($cartId, $productId, $quantity);
+            
+            // Set session context to only include this newly added item for checkout
+            // This ensures "buy now" only checks out this product, not all cart items
+            $_SESSION[self::CHECKOUT_SESSION_KEY] = [
+                'selected_item_ids' => [$itemId], // Only the newly added item
+                'use_points' => false,
+                'shipping_method' => 'standard',
+                'voucher_code' => '',
+            ];
         }
         redirect('?module=cart&action=checkout');
     }
