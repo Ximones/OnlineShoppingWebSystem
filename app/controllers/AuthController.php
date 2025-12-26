@@ -96,10 +96,10 @@ class AuthController extends Controller
     {
         if (is_post() && validate([
             'name' => ['required' => 'Name is required.'],
-            'email' => ['required' => 'Email is required.', 'email' => 'Email format invalid.'],
-            'phone' => ['required' => 'Phone is required.'],
+            'email' => ['required' => 'Email is required.', 'email' => 'Email format is invalid.'],
+            'phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
             'password' => ['required' => 'Password is required.', 'min:8' => 'Password must be at least 8 characters.'],
-            'confirm_password' => ['same:password' => 'Passwords do not match.'],
+            'confirm_password' => ['required' => 'Please confirm your password.', 'same:password' => 'Passwords do not match.'],
         ])) {
 
             // CAPTCHA Verification Logic
@@ -269,14 +269,13 @@ class AuthController extends Controller
             if (validate([
                 'password' => [
                     'required' => 'Password is required.',
-                    'min_length' => ['Password must be at least 8 characters.', 8]
+                    'min:8' => 'Password must be at least 8 characters.'
                 ],
-                'confirm_password' => ['required' => 'Please confirm your password.']
+                'confirm_password' => [
+                    'required' => 'Please confirm your password.',
+                    'same:password' => 'Passwords do not match.'
+                ]
             ])) {
-                if ($password !== $confirmPassword) {
-                    flash('danger', 'Passwords do not match.');
-                    redirect('?module=auth&action=reset&token=' . encode($token));
-                }
 
                 // Update user password
                 $hashedPassword = password_hash($password, PASSWORD_BCRYPT);

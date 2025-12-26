@@ -64,6 +64,18 @@ function validate(array $rules): bool
                     break;
                 }
             }
+
+            if ($rule === 'phone' && $value !== '') {
+                // Malaysian phone format validation
+                // Accepts: 01X-XXXXXXX, 01XXXXXXXXX, +601X-XXXXXXX, +601XXXXXXXXX
+                // Removes spaces, dashes, and plus signs for validation
+                $cleaned = preg_replace('/[\s\-+]/', '', $value);
+                // Should start with 01 and be 10-11 digits total (01XXXXXXXX)
+                if (!preg_match('/^01\d{8,9}$/', $cleaned)) {
+                    $_err[$key] = $message;
+                    break;
+                }
+            }
         }
     }
 

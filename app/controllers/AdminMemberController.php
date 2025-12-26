@@ -39,9 +39,9 @@ class AdminMemberController extends AdminController
         $this->requireAdmin();
         if (is_post() && validate([
             'name' => ['required' => 'Name is required.'],
-            'email' => ['required' => 'Email is required.', 'email' => 'Invalid email.'],
-            'phone' => ['required' => 'Phone is required.'],
-            'password' => ['required' => 'Password is required.', 'min:8' => 'Minimum 8 characters.'],
+            'email' => ['required' => 'Email is required.', 'email' => 'Email format is invalid.'],
+            'phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
+            'password' => ['required' => 'Password is required.', 'min:8' => 'Password must be at least 8 characters.'],
         ])) {
             if ($this->users->findByEmail(post('email'))) {
                 flash('danger', 'Email already exists.');

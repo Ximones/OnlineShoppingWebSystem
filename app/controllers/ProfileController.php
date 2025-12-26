@@ -32,7 +32,7 @@ class ProfileController extends Controller
         $this->requireAuth();
         if (is_post() && validate([
             'name' => ['required' => 'Name is required.'],
-            'phone' => ['required' => 'Phone is required.'],
+            'phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
             'address' => ['required' => 'Address is required.'],
         ])) {
             $this->users->updateProfile(auth_id(), [
@@ -53,8 +53,8 @@ class ProfileController extends Controller
         $this->requireAuth();
         if (is_post() && validate([
             'current_password' => ['required' => 'Current password is required.'],
-            'password' => ['required' => 'New password is required.', 'min:8' => 'At least 8 characters.'],
-            'confirm_password' => ['same:password' => 'Passwords do not match.'],
+            'password' => ['required' => 'New password is required.', 'min:8' => 'Password must be at least 8 characters.'],
+            'confirm_password' => ['required' => 'Please confirm your password.', 'same:password' => 'Passwords do not match.'],
         ])) {
             $user = $this->users->find(auth_id());
             if (!password_verify(post('current_password'), $user['password_hash'])) {
@@ -90,7 +90,7 @@ class ProfileController extends Controller
         if (is_post() && validate([
             'label' => ['required' => 'Address label is required.'],
             'name' => ['required' => 'Recipient name is required.'],
-            'phone' => ['required' => 'Phone is required.'],
+            'phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
             'address' => ['required' => 'Address is required.'],
         ])) {
             $this->savedAddresses->create([

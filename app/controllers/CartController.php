@@ -192,7 +192,7 @@ class CartController extends Controller
             if (validate([
                 'label' => ['required' => 'Address label is required.'],
                 'name' => ['required' => 'Recipient name is required.'],
-                'phone' => ['required' => 'Phone is required.'],
+                'phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
                 'address' => ['required' => 'Address is required.'],
             ])) {
                 $this->savedAddresses->create([
@@ -213,7 +213,7 @@ class CartController extends Controller
 
         if (is_post() && post('action') !== 'save_address' && $checkoutStep !== 'update_pricing' && validate([
             'shipping_name' => ['required' => 'Shipping name is required.'],
-            'shipping_phone' => ['required' => 'Phone is required.'],
+            'shipping_phone' => ['required' => 'Phone is required.', 'phone' => 'Phone format is invalid. Please use Malaysian format (e.g., 012-3456789 or 0123456789).'],
             'shipping_address' => ['required' => 'Address is required.'],
         ])) {
             // Final stock check before creating order
