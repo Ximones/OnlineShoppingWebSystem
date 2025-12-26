@@ -31,7 +31,7 @@
                     <th>Name</th>
                     <th>Type</th>
                     <th>Value</th>
-                    <th>Min Subtotal</th>
+                    <th>Min Spend</th>
                     <th>Shipping Only</th>
                     <th>First Order Only</th>
                     <th>Available Qty</th>

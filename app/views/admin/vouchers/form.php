@@ -94,7 +94,7 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label for="min_subtotal">
-                        Minimum Subtotal (RM)
+                        Minimum Spend (RM)
                         <small style="display: block; color: var(--color-text-muted); font-weight: normal; margin-top: 0.25rem;">
                             Minimum order amount required to use this voucher
                         </small>
@@ -171,41 +171,35 @@
             <div style="margin-top: 1.5rem; padding: 1.25rem; background: var(--color-bg-soft); border-radius: var(--radius-sm); border: 1px solid var(--color-border-soft);">
                 <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: var(--color-text);">Restrictions</h4>
 
-                <div class="toggle-list">
-                    <label class="toggle-row">
-                        <span class="toggle-control">
-                            <input type="checkbox" name="is_shipping_only" value="1"
-                                   <?= post('is_shipping_only', $voucher['is_shipping_only'] ?? 0) ? 'checked' : ''; ?>>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span class="toggle-text">
-                            <strong>Applies to shipping fee only</strong>
-                            <small>Discount will only apply to shipping costs, not product prices</small>
-                        </span>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 0.25rem;">Applies to shipping fee only</strong>
+                            <small style="color: var(--color-text-muted);">Discount will only apply to shipping costs, not product prices</small>
+                        </div>
+                        <input type="checkbox" name="is_shipping_only" value="1"
+                               <?= post('is_shipping_only', $voucher['is_shipping_only'] ?? 0) ? 'checked' : ''; ?>
+                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
 
-                    <label class="toggle-row">
-                        <span class="toggle-control">
-                            <input type="checkbox" name="is_first_order_only" value="1"
-                                   <?= post('is_first_order_only', $voucher['is_first_order_only'] ?? 0) ? 'checked' : ''; ?>>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span class="toggle-text">
-                            <strong>First-time customers only</strong>
-                            <small>Only customers with 0 order history can use this voucher</small>
-                        </span>
+                    <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 0.25rem;">First-time customers only</strong>
+                            <small style="color: var(--color-text-muted);">Only customers with 0 order history can use this voucher</small>
+                        </div>
+                        <input type="checkbox" name="is_first_order_only" value="1"
+                               <?= post('is_first_order_only', $voucher['is_first_order_only'] ?? 0) ? 'checked' : ''; ?>
+                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
 
-                    <label class="toggle-row">
-                        <span class="toggle-control">
-                            <input type="checkbox" name="is_active" value="1"
-                                   <?= post('is_active', $voucher['is_active'] ?? 1) ? 'checked' : ''; ?>>
-                            <span class="toggle-slider"></span>
-                        </span>
-                        <span class="toggle-text">
-                            <strong>Active</strong>
-                            <small>Enable or disable this voucher</small>
-                        </span>
+                    <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer;">
+                        <div style="flex: 1;">
+                            <strong style="display: block; margin-bottom: 0.25rem;">Active</strong>
+                            <small style="color: var(--color-text-muted);">Enable or disable this voucher</small>
+                        </div>
+                        <input type="checkbox" name="is_active" value="1"
+                               <?= post('is_active', $voucher['is_active'] ?? 1) ? 'checked' : ''; ?>
+                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
                 </div>
             </div>
