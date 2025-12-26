@@ -251,7 +251,7 @@ class CartController extends Controller
             }
 
             $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
-            
+
             // Re-find selectedVoucher using the effective voucher code from pricing summary
             // This ensures we have the correct voucher that was actually applied
             $effectiveVoucherCode = $pricingSummary['voucher_code'] ?? '';
@@ -292,7 +292,7 @@ class CartController extends Controller
                 // No voucher was applied, clear selectedVoucher
                 $selectedVoucher = null;
             }
-            
+
             // Ensure selectedVoucher is valid - if we couldn't find it, clear it
             if ($selectedVoucher && empty($selectedVoucher['id'])) {
                 $selectedVoucher = null;
@@ -313,8 +313,16 @@ class CartController extends Controller
             // Stripe payments are 'pending' until payment is confirmed, PayLater is 'paid' immediately
             $orderStatus = ($paymentMethod === 'Stripe') ? 'pending' : 'paid';
 
-            // Compute PayLater charges and enforce credit limit
+
             $amount = (float) $pricingSummary['payable_total'];
+
+            if ($amount <= 0) {
+                $orderStatus = 'paid';
+            } else {
+                $orderStatus = ($paymentMethod === 'Stripe') ? 'pending' : 'paid';
+            }
+
+            // Compute PayLater charges and enforce credit limit
             $interestRate = 0.0;
             $paylaterTotal = $amount;
             if ($paymentMethod === 'PayLater' && $amount > 0) {
@@ -376,6 +384,20 @@ class CartController extends Controller
                 $this->products->reduceStock($item['product_id'], $item['quantity']);
             }
 
+            if ($amount <= 0) {
+                // Create a completed payment record for RM 0
+                $this->payments->create($orderId, 'Points/Voucher', 0, 0, 'completed');
+
+                // Send Receipt
+                $this->sendOrderReceipt($orderId);
+
+                // Clear Cart & Success
+                unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
+                flash('success', 'Order confirmed! (Fully paid via points/voucher)');
+                redirect("?module=orders&action=detail&id=$orderId");
+                return; // Stop here, do not go to Stripe
+            }
+
             // Mark voucher as used if one was applied (only for PayLater, Stripe will be handled after payment)
             if ($paymentMethod !== 'Stripe' && !empty($pricingSummary['voucher_code'])) {
                 // Use code-based marking which is more reliable
@@ -425,45 +447,74 @@ class CartController extends Controller
                         );
                     }
                 } elseif ($paymentMethod === 'Stripe') {
-                    // Store voucher info in session for stripe_success callback
-                    $_SESSION[self::CHECKOUT_SESSION_KEY] = [
-                        'voucher_code' => $pricingSummary['voucher_code'] ?? null,
-                        'voucher_id' => $selectedVoucher ? $selectedVoucher['id'] : null,
-                    ];
-                    
-                    // 1. Prepare Items
-                    $lineItems = [];
-                    foreach ($items as $item) {
-                        $lineItems[] = [
-                            'price_data' => [
+                    try {
+                        \Stripe\Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+
+                        // A. Prepare Items (Original Price)
+                        $lineItems = [];
+                        foreach ($items as $item) {
+                            $lineItems[] = [
+                                'price_data' => [
+                                    'currency' => 'myr',
+                                    'product_data' => ['name' => $item['name']],
+                                    'unit_amount' => (int)($item['price'] * 100), // Original Price
+                                ],
+                                'quantity' => (int)$item['quantity'],
+                            ];
+                        }
+
+                        // B. Prepare Shipping (Original Fee)
+                        $shippingDiscount = $pricingSummary['voucher_shipping_discount'] ?? 0;
+                        $fullShippingFee = $pricingSummary['shipping_fee'] + $shippingDiscount;
+
+                        if ($fullShippingFee > 0) {
+                            $lineItems[] = [
+                                'price_data' => [
+                                    'currency' => 'myr',
+                                    'product_data' => ['name' => 'Shipping Fee (' . $shippingMethod . ')'],
+                                    'unit_amount' => (int)($fullShippingFee * 100),
+                                ],
+                                'quantity' => 1,
+                            ];
+                        }
+
+                        // C. Prepare Discount (Coupon)
+                        $totalDiscount = $pricingSummary['points_discount'] + $pricingSummary['voucher_discount'] + $shippingDiscount;
+                        $discountsArray = [];
+
+                        if ($totalDiscount > 0) {
+                            $coupon = \Stripe\Coupon::create([
+                                'amount_off' => (int)($totalDiscount * 100),
                                 'currency' => 'myr',
-                                'product_data' => ['name' => $item['name']],
-                                'unit_amount' => $amount * 100,
-                            ],
-                            'quantity' => (int)$item['quantity'],
-                        ];
+                                'duration' => 'once',
+                                'name' => 'Total Discount (Points/Voucher)',
+                            ]);
+                            $discountsArray[] = ['coupon' => $coupon->id];
+                        }
+
+                        // D. Create Session Object
+                        $session = \Stripe\Checkout\Session::create([
+                            'payment_method_types' => ['card', 'fpx', 'grabpay'],
+                            'mode' => 'payment',
+                            'client_reference_id' => $orderId,
+                            'line_items' => $lineItems,       // Input: Items + Shipping
+                            'discounts' => $discountsArray,   // Input: Coupon ID
+                            'success_url' => url('?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId),
+                            'cancel_url' => url('?module=cart&action=stripe_cancel&order_id=' . $orderId),
+                        ]);
+
+                        header("HTTP/1.1 303 See Other");
+                        header("Location: " . $session->url);
+                        exit();
+                    } catch (\Exception $e) {
+                        flash('danger', 'Stripe Error: ' . $e->getMessage());
+                        redirect('?module=cart&action=checkout');
                     }
-
-                    // 2. Use the Service
-                    $stripe = new StripeService();
-                    $session = $stripe->createCheckoutSession(
-                        $lineItems,
-                        url('?module=cart&action=stripe_success&session_id={CHECKOUT_SESSION_ID}&order_id=' . $orderId),
-                        url('?module=cart&action=stripe_cancel&order_id=' . $orderId)
-                    );
-
-                    // 3. Redirect
-                    header("HTTP/1.1 303 See Other");
-                    header("Location: " . $session->url);
-                    exit();
-                } else {
-                    // Fallback for any other payment method (shouldn't happen with current design)
-                    $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
                 }
             }
 
             $this->payments->create($orderId, $paymentMethod, $amount, $amount, 'completed');
-            
+
             $orderModel = new Order();
             $orderDetail = $orderModel->detail($orderId);
             $html = render_ereceipt($orderDetail, $user);
@@ -496,7 +547,7 @@ class CartController extends Controller
         $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
         // Use effective voucher code from pricing summary (empty if not applicable)
         $effectiveVoucherCode = $pricingSummary['voucher_code'] ?? '';
-        
+
         // Re-find selectedVoucher using the effective voucher code (in case it changed)
         // This ensures we have the correct voucher that was actually applied
         $selectedVoucherId = null;
@@ -663,18 +714,18 @@ class CartController extends Controller
             $orderDetail = $this->orders->detail($orderId);
             $voucherCode = null;
             $userVoucherId = null;
-            
+
             // Try to get voucher info from order (if stored) or session
             // First, check if we can get it from the order's pricing calculation
             // The order doesn't store voucher_code directly, so we need to get it from session
             $sessionData = $_SESSION[self::CHECKOUT_SESSION_KEY] ?? [];
             $voucherCode = $sessionData['voucher_code'] ?? null;
             $userVoucherId = isset($sessionData['voucher_id']) ? (int) $sessionData['voucher_id'] : null;
-            
+
             // If we have a voucher code, find the correct voucher instance
             if ($voucherCode) {
                 $userId = auth_id();
-                
+
                 // If we have voucher_id from session, verify it matches the code and is still active
                 if ($userVoucherId) {
                     $userVouchers = $this->userVouchers->activeForUser($userId);
@@ -690,7 +741,7 @@ class CartController extends Controller
                         $userVoucherId = null;
                     }
                 }
-                
+
                 // If we don't have a valid voucher_id, find by code
                 if (!$userVoucherId) {
                     $userVouchers = $this->userVouchers->activeForUser($userId);
@@ -702,7 +753,7 @@ class CartController extends Controller
                     }
                 }
             }
-            
+
             $this->orders->processPointsAndVouchers($orderId, $voucherCode, $userVoucherId);
 
             // Send E-Receipt Email
