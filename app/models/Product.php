@@ -212,4 +212,20 @@ class Product
 
         return $stm->rowCount() > 0;
     }
+
+    public function skuExists(string $sku, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT id FROM products WHERE sku = ?';
+        $params = [$sku];
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id != ?';
+            $params[] = $excludeId;
+        }
+
+        $stm = $this->db->prepare($sql);
+        $stm->execute($params);
+
+        return $stm->fetch() !== false;
+    }
 }
