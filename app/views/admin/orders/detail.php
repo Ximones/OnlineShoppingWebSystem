@@ -23,6 +23,9 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                 <a href="?module=admin&resource=orders&action=download_receipt&id=<?= $order['id']; ?>" class="btn secondary small">
                     <i class="fas fa-download"></i> Download Receipt
                 </a>
+                <form method="post" action="?module=admin&resource=orders&action=reorder&id=<?= $order['id']; ?>" style="display:inline-block;">
+                    <button type="submit" class="btn secondary small">Order Again</button>
+                </form>
                 <form method="post" action="?module=admin&resource=orders&action=updateStatus" style="display:flex; gap:0.4rem; align-items:center;">
                     <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
                     <select name="status" style="font-size: 0.85rem; padding: 0.15rem 0.3rem;">

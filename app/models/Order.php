@@ -407,6 +407,58 @@ class Order
         $this->db->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
     }
 
+    /**
+     * Refund points when an order is cancelled
+     * - Deduct earned points (if order was paid and earned points)
+     * - Refund redeemed points (if any were redeemed)
+     * - Update reward tier
+     */
+    public function refundPointsOnCancel(int $orderId): void
+    {
+        require_once __DIR__ . '/../lib/rewards.php';
+        
+        $order = $this->detail($orderId);
+        if (!$order) {
+            return;
+        }
+
+        $userId = (int) $order['user_id'];
+        $currentStatus = strtolower($order['status'] ?? '');
+        
+        // Calculate points earned (same calculation as when order was created)
+        $subtotal = array_reduce($order['items'], function ($carry, $item) {
+            return $carry + ($item['unit_price'] * $item['quantity']);
+        }, 0.0);
+        $pointsDiscount = (float) ($order['points_discount'] ?? 0);
+        $voucherDiscount = (float) ($order['voucher_discount'] ?? 0);
+        $baseTotal = max(0, $subtotal - $pointsDiscount - $voucherDiscount);
+        $pointsEarned = calculate_reward_points($baseTotal);
+        
+        // Deduct earned points (if order was paid and earned points)
+        // Only deduct if order was in a paid state (not pending Stripe orders that were never paid)
+        // Pending orders that were paid via Stripe would have been updated to 'processing' or 'shipped' after payment
+        $paidStatuses = ['paid', 'processing', 'shipped', 'completed'];
+        if (in_array($currentStatus, $paidStatuses, true) && $pointsEarned > 0) {
+            $this->db->prepare('UPDATE users SET reward_points = GREATEST(0, reward_points - ?), updated_at = NOW() WHERE id = ?')
+                ->execute([$pointsEarned, $userId]);
+        }
+        
+        // Refund redeemed points (if any were redeemed)
+        // This applies to all orders regardless of status, as points were deducted when order was created
+        $pointsRedeemed = (int) ($pointsDiscount * 10); // Convert RM to points (10 points = RM1)
+        if ($pointsRedeemed > 0) {
+            $this->db->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')
+                ->execute([$pointsRedeemed, $userId]);
+        }
+        
+        // Update reward tier
+        $stm = $this->db->prepare('SELECT reward_points FROM users WHERE id = ?');
+        $stm->execute([$userId]);
+        $userPoints = (float) $stm->fetchColumn();
+        $newTier = calculate_reward_tier($userPoints);
+        $this->db->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
+    }
+
     public function addTracking(int $orderId, string $status, ?string $location = null, ?string $remarks = null): void
     {
         $stm = $this->db->prepare(

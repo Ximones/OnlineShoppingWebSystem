@@ -65,10 +65,13 @@ class AdminOrderController extends AdminController
             redirect('?module=admin&resource=orders&action=index');
         }
 
-        // If cancelling the order, cancel PayLater payments and restore stock
+        // If cancelling the order, cancel PayLater payments, refund points, and restore stock
         if ($status === 'cancelled') {
             $payments = new Payment();
             $payments->cancelPayLaterForOrder($orderId);
+
+            // Refund points (deduct earned, refund redeemed)
+            $this->orders->refundPointsOnCancel($orderId);
 
             // Restore stock
             $products = new Product();

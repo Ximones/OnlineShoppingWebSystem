@@ -63,6 +63,9 @@ class OrderController extends Controller
         $payments = new Payment();
         $payments->cancelPayLaterForOrder($orderId);
 
+        // Refund points (deduct earned, refund redeemed)
+        $this->orders->refundPointsOnCancel($orderId);
+
         // Restore stock
         $products = new Product();
         foreach ($order['items'] as $item) {
