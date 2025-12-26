@@ -58,8 +58,19 @@ class AdminVoucherController extends AdminController
                 'value' => ['required' => 'Value is required.', 'numeric' => 'Value must be a number.'],
                 'min_subtotal' => ['numeric' => 'Min spend must be a number.'],
                 'max_discount' => ['numeric' => 'Max discount must be a number.'],
-                'quota' => ['numeric' => 'Quota must be a number.'],
+                'max_claims' => ['numeric' => 'Available quantity must be a number.'],
             ])) {
+                // Convert datetime-local format to DATETIME format for database
+                $startAt = post('start_at');
+                if ($startAt) {
+                    $startAt = date('Y-m-d H:i:s', strtotime($startAt));
+                }
+                
+                $endAt = post('end_at');
+                if ($endAt) {
+                    $endAt = date('Y-m-d H:i:s', strtotime($endAt));
+                }
+                
                 $this->vouchers->create([
                     'code' => strtoupper(post('code')),
                     'name' => post('name'),
@@ -68,12 +79,12 @@ class AdminVoucherController extends AdminController
                     'value' => post('value'),
                     'min_subtotal' => post('min_subtotal') ?: 0,
                     'max_discount' => post('max_discount') ?: null,
-                    'quota' => post('quota') ?: 0,
+                    'max_claims' => post('max_claims') ?: null,
                     'is_active' => post('is_active') ? 1 : 0,
                     'is_shipping_only' => post('is_shipping_only') ? 1 : 0,
                     'is_first_order_only' => post('is_first_order_only') ? 1 : 0,
-                    'valid_from' => post('valid_from') ?: null,
-                    'valid_until' => post('valid_until') ?: null,
+                    'start_at' => $startAt ?: null,
+                    'end_at' => $endAt ?: null,
                 ]);
                 flash('success', 'Voucher created.');
                 redirect('?module=admin&resource=vouchers&action=index');
@@ -111,8 +122,19 @@ class AdminVoucherController extends AdminController
                 'value' => ['required' => 'Value is required.', 'numeric' => 'Value must be a number.'],
                 'min_subtotal' => ['numeric' => 'Min spend must be a number.'],
                 'max_discount' => ['numeric' => 'Max discount must be a number.'],
-                'quota' => ['numeric' => 'Quota must be a number.'],
+                'max_claims' => ['numeric' => 'Available quantity must be a number.'],
             ])) {
+                // Convert datetime-local format to DATETIME format for database
+                $startAt = post('start_at');
+                if ($startAt) {
+                    $startAt = date('Y-m-d H:i:s', strtotime($startAt));
+                }
+                
+                $endAt = post('end_at');
+                if ($endAt) {
+                    $endAt = date('Y-m-d H:i:s', strtotime($endAt));
+                }
+                
                 $this->vouchers->update($id, [
                     'code' => strtoupper(post('code')),
                     'name' => post('name'),
@@ -121,12 +143,12 @@ class AdminVoucherController extends AdminController
                     'value' => post('value'),
                     'min_subtotal' => post('min_subtotal') ?: 0,
                     'max_discount' => post('max_discount') ?: null,
-                    'quota' => post('quota') ?: 0,
+                    'max_claims' => post('max_claims') ?: null,
                     'is_active' => post('is_active') ? 1 : 0,
                     'is_shipping_only' => post('is_shipping_only') ? 1 : 0,
                     'is_first_order_only' => post('is_first_order_only') ? 1 : 0,
-                    'valid_from' => post('valid_from') ?: null,
-                    'valid_until' => post('valid_until') ?: null,
+                    'start_at' => $startAt ?: null,
+                    'end_at' => $endAt ?: null,
                 ]);
                 flash('success', 'Voucher updated.');
                 redirect('?module=admin&resource=vouchers&action=index');

@@ -21,6 +21,9 @@ class Voucher
 
         if (!empty($filters['active_only'])) {
             $sql .= ' AND is_active = 1';
+            // Filter by date range - only show vouchers that are currently valid
+            $sql .= ' AND (start_at IS NULL OR start_at <= NOW())';
+            $sql .= ' AND (end_at IS NULL OR end_at >= NOW())';
         }
 
         if (!empty($filters['search'])) {
