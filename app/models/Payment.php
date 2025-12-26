@@ -58,6 +58,7 @@ class Payment
                 INNER JOIN orders o ON o.id = p.order_id
                 WHERE o.user_id = ? AND p.payment_method = "PayLater" 
                 AND p.status = "pending" 
+                AND o.status != "cancelled"
                 AND (p.billing_due_date IS NULL OR p.billing_due_date >= CURDATE())
                 ORDER BY p.billing_due_date ASC, p.payment_date DESC';
         $stm = $this->db->prepare($sql);
@@ -72,6 +73,7 @@ class Payment
                 INNER JOIN orders o ON o.id = p.order_id
                 WHERE o.user_id = ? AND p.payment_method = "PayLater" 
                 AND p.status = "pending" 
+                AND o.status != "cancelled"
                 AND (p.billing_due_date IS NULL OR p.billing_due_date >= CURDATE())';
         $stm = $this->db->prepare($sql);
         $stm->execute([$userId]);
@@ -138,6 +140,22 @@ class Payment
         $stm = $this->db->prepare($sql);
         $stm->execute($params);
         return $stm->fetchAll();
+    }
+
+    /**
+     * Cancel all PayLater payments for an order (set status to 'cancelled')
+     * This should be called when an order is cancelled
+     */
+    public function cancelPayLaterForOrder(int $orderId): void
+    {
+        $stm = $this->db->prepare(
+            'UPDATE payments 
+             SET status = "cancelled", updated_at = NOW() 
+             WHERE order_id = ? 
+             AND payment_method = "PayLater" 
+             AND status = "pending"'
+        );
+        $stm->execute([$orderId]);
     }
 }
 

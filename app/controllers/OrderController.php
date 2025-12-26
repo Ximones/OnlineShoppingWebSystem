@@ -6,6 +6,13 @@ use App\Core\Controller;
 use App\Models\Order;
 use App\Models\Cart;
 use App\Models\Review;
+use App\Models\User;
+use App\Models\Payment;
+use App\Models\Product;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
+require_once __DIR__ . '/../lib/mail/mail_helper.php';
 
 class OrderController extends Controller
 {
@@ -50,6 +57,16 @@ class OrderController extends Controller
         if (in_array(strtolower($order['status']), $nonCancellable, true)) {
             flash('danger', 'This order can no longer be cancelled.');
             redirect("?module=orders&action=detail&id=$orderId");
+        }
+
+        // Cancel PayLater payments if any
+        $payments = new Payment();
+        $payments->cancelPayLaterForOrder($orderId);
+
+        // Restore stock
+        $products = new Product();
+        foreach ($order['items'] as $item) {
+            $products->restoreStock((int)$item['product_id'], (int)$item['quantity']);
         }
 
         $this->orders->updateStatus($orderId, 'cancelled');
@@ -129,6 +146,47 @@ class OrderController extends Controller
 
         flash('success', 'Thank you for reviewing this product!');
         redirect("?module=orders&action=detail&id=$orderId");
+    }
+
+    public function download_receipt(): void
+    {
+        $this->requireAuth();
+        $orderId = (int) get('id');
+        $order = $this->orders->detail($orderId);
+        
+        if (!$order || $order['user_id'] != auth_id()) {
+            flash('danger', 'Order not found.');
+            redirect('?module=orders&action=history');
+        }
+
+        $users = new User();
+        $user = $users->find($order['user_id']);
+        if (!$user) {
+            flash('danger', 'User not found.');
+            redirect("?module=orders&action=detail&id=$orderId");
+        }
+
+        // Generate receipt HTML
+        $html = render_ereceipt($order, $user);
+
+        // Configure DomPDF
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Set headers for PDF download
+        $filename = 'Order_' . $orderId . '_Receipt_' . date('Y-m-d') . '.pdf';
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        echo $dompdf->output();
+        exit;
     }
 }
 

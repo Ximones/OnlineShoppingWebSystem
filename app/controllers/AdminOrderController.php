@@ -4,6 +4,13 @@ namespace App\Controllers;
 
 use App\Core\AdminController;
 use App\Models\Order;
+use App\Models\User;
+use App\Models\Payment;
+use App\Models\Product;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+
+require_once __DIR__ . '/../lib/mail/mail_helper.php';
 
 class AdminOrderController extends AdminController
 {
@@ -50,6 +57,27 @@ class AdminOrderController extends AdminController
         if (!in_array($status, $allowed, true)) {
             flash('danger', 'Invalid status selected.');
             redirect('?module=admin&resource=orders&action=index');
+        }
+
+        $order = $this->orders->detail($orderId);
+        if (!$order) {
+            flash('danger', 'Order not found.');
+            redirect('?module=admin&resource=orders&action=index');
+        }
+
+        // If cancelling the order, cancel PayLater payments and restore stock
+        if ($status === 'cancelled') {
+            $payments = new Payment();
+            $payments->cancelPayLaterForOrder($orderId);
+
+            // Restore stock
+            $products = new Product();
+            foreach ($order['items'] as $item) {
+                $products->restoreStock((int)$item['product_id'], (int)$item['quantity']);
+            }
+
+            // Add tracking entry
+            $this->orders->addTracking($orderId, 'Cancelled', null, 'Order cancelled by admin');
         }
 
         $this->orders->updateStatus($orderId, $status);
@@ -102,6 +130,47 @@ class AdminOrderController extends AdminController
         $this->orders->deleteTracking($trackingId, $orderId);
         flash('success', 'Tracking entry removed.');
         redirect("?module=admin&resource=orders&action=detail&id=$orderId");
+    }
+
+    public function download_receipt(): void
+    {
+        $this->requireAdmin();
+        $orderId = (int) get('id');
+        $order = $this->orders->detail($orderId);
+        
+        if (!$order) {
+            flash('danger', 'Order not found.');
+            redirect('?module=admin&resource=orders&action=index');
+        }
+
+        $users = new User();
+        $user = $users->find($order['user_id']);
+        if (!$user) {
+            flash('danger', 'User not found.');
+            redirect("?module=admin&resource=orders&action=detail&id=$orderId");
+        }
+
+        // Generate receipt HTML
+        $html = render_ereceipt($order, $user);
+
+        // Configure DomPDF
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isRemoteEnabled', true);
+        $options->set('defaultFont', 'Arial');
+        
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        // Set headers for PDF download
+        $filename = 'Order_' . $orderId . '_Receipt_' . date('Y-m-d') . '.pdf';
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        echo $dompdf->output();
+        exit;
     }
 }
 

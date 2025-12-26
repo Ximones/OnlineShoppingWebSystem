@@ -19,17 +19,22 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
             <div class="order-status-badge order-status-<?= strtolower($order['status']); ?>">
                 <?= encode(ucfirst($order['status'])); ?>
             </div>
-            <form method="post" action="?module=admin&resource=orders&action=updateStatus" style="display:flex; gap:0.4rem; align-items:center;">
-                <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
-                <select name="status" style="font-size: 0.85rem; padding: 0.15rem 0.3rem;">
-                    <?php foreach ($GLOBALS['_order_statuses'] as $code => $text): ?>
-                        <option value="<?= $code; ?>" <?= strtolower($order['status']) === $code ? 'selected' : ''; ?>>
-                            <?= $text; ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <button class="btn small secondary" type="submit">Update</button>
-            </form>
+            <div style="display:flex; gap:0.4rem; align-items:center; flex-wrap: wrap;">
+                <a href="?module=admin&resource=orders&action=download_receipt&id=<?= $order['id']; ?>" class="btn secondary small">
+                    <i class="fas fa-download"></i> Download Receipt
+                </a>
+                <form method="post" action="?module=admin&resource=orders&action=updateStatus" style="display:flex; gap:0.4rem; align-items:center;">
+                    <input type="hidden" name="order_id" value="<?= $order['id']; ?>">
+                    <select name="status" style="font-size: 0.85rem; padding: 0.15rem 0.3rem;">
+                        <?php foreach ($GLOBALS['_order_statuses'] as $code => $text): ?>
+                            <option value="<?= $code; ?>" <?= strtolower($order['status']) === $code ? 'selected' : ''; ?>>
+                                <?= $text; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button class="btn small secondary" type="submit">Update</button>
+                </form>
+            </div>
         </div>
     </div>
 

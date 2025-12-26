@@ -20,6 +20,9 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                 <?= encode(ucfirst($order['status'])); ?>
             </div>
             <div class="order-detail-buttons">
+                <a href="?module=orders&action=download_receipt&id=<?= $order['id']; ?>" class="btn secondary small" style="display:inline-block; margin-left: 0.5rem;">
+                    <i class="fas fa-download"></i> Download Receipt
+                </a>
                 <?php if (!is_admin()): ?>
                     <form method="post" action="?module=orders&action=reorder&id=<?= $order['id']; ?>" style="display:inline-block; margin-left: 0.5rem;">
                         <button type="submit" class="btn secondary small">Order Again</button>
