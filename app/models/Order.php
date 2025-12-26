@@ -81,21 +81,25 @@ class Order
                 $stm->execute([$orderId, $item['product_id'], $item['quantity'], $item['price']]);
             }
 
-            if ($pointsRedeemed > 0) {
+            // Only deduct points and earn points if order is already paid (PayLater)
+            // For Stripe orders (pending), points will be handled after payment succeeds
+            if ($orderStatus === 'paid' && $pointsRedeemed > 0) {
                 $pdo->prepare('UPDATE users SET reward_points = GREATEST(0, reward_points - ?), updated_at = NOW() WHERE id = ?')->execute([$pointsRedeemed, $userId]);
             }
 
             // Earn points based on merchandise spend after voucher/points, excluding shipping
-            $pointsEarned = calculate_reward_points($baseTotal);
-            if ($pointsEarned > 0) {
-                $pdo->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')->execute([$pointsEarned, $userId]);
-            }
+            if ($orderStatus === 'paid') {
+                $pointsEarned = calculate_reward_points($baseTotal);
+                if ($pointsEarned > 0) {
+                    $pdo->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')->execute([$pointsEarned, $userId]);
+                }
 
-            $stm = $pdo->prepare('SELECT reward_points FROM users WHERE id = ?');
-            $stm->execute([$userId]);
-            $userPoints = (float) $stm->fetchColumn();
-            $newTier = calculate_reward_tier($userPoints);
-            $pdo->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
+                $stm = $pdo->prepare('SELECT reward_points FROM users WHERE id = ?');
+                $stm->execute([$userId]);
+                $userPoints = (float) $stm->fetchColumn();
+                $newTier = calculate_reward_tier($userPoints);
+                $pdo->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
+            }
 
             if ($selectedIds) {
                 $in = implode(',', array_fill(0, count($selectedIds), '?'));
@@ -184,7 +188,8 @@ class Order
         $order['tracking'] = $stm->fetchAll();
 
         // Get voucher used for this order
-        $stm = $this->db->prepare('SELECT uv.*, v.code, v.name, v.type, v.value, v.max_discount FROM user_vouchers uv INNER JOIN vouchers v ON v.id = uv.voucher_id WHERE uv.order_id = ? LIMIT 1');
+        // Order by used_at DESC to get the most recently used voucher if multiple exist (shouldn't happen, but safety)
+        $stm = $this->db->prepare('SELECT uv.*, v.code, v.name, v.type, v.value, v.max_discount FROM user_vouchers uv INNER JOIN vouchers v ON v.id = uv.voucher_id WHERE uv.order_id = ? ORDER BY uv.used_at DESC LIMIT 1');
         $stm->execute([$id]);
         $order['voucher'] = $stm->fetch() ?: null;
 
@@ -314,6 +319,81 @@ class Order
     {
         $stm = $this->db->prepare('UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?');
         $stm->execute([$status, $id]);
+    }
+
+    /**
+     * Process points deduction and voucher marking after payment succeeds.
+     * This is called for Stripe orders that were created with status 'pending'.
+     */
+    public function processPointsAndVouchers(int $orderId, ?string $voucherCode = null, ?int $userVoucherId = null): void
+    {
+        require_once __DIR__ . '/../lib/rewards.php';
+        
+        $order = $this->detail($orderId);
+        if (!$order) {
+            return;
+        }
+
+        $userId = (int) $order['user_id'];
+        $pointsDiscount = (float) ($order['points_discount'] ?? 0);
+        $pointsRedeemed = (int) ($pointsDiscount * 10); // Convert RM to points (10 points = RM1)
+        
+        // Deduct points if any were redeemed
+        if ($pointsRedeemed > 0) {
+            $this->db->prepare('UPDATE users SET reward_points = GREATEST(0, reward_points - ?), updated_at = NOW() WHERE id = ?')
+                ->execute([$pointsRedeemed, $userId]);
+        }
+
+        // Mark voucher as used if one was applied
+        // Use code-based marking as it's more reliable than ID-based
+        $userVoucherModel = new \App\Models\UserVoucher();
+        $marked = false;
+        
+        if ($voucherCode) {
+            // Always try to mark by code first (most reliable)
+            try {
+                $marked = $userVoucherModel->markUsedByCode($userId, $voucherCode, $orderId);
+            } catch (\RuntimeException $e) {
+                error_log("Error marking voucher by code '$voucherCode' for order #$orderId: " . $e->getMessage());
+            }
+        }
+        
+        // If code-based marking failed and we have an ID, try ID-based as fallback
+        if (!$marked && $userVoucherId) {
+            try {
+                $userVoucherModel->markUsed($userVoucherId, $orderId);
+                $marked = true;
+            } catch (\RuntimeException $e) {
+                error_log("Error marking voucher #$userVoucherId for order #$orderId: " . $e->getMessage());
+                // If ID fails, try code again as last resort
+                if ($voucherCode) {
+                    try {
+                        $marked = $userVoucherModel->markUsedByCode($userId, $voucherCode, $orderId);
+                    } catch (\RuntimeException $e2) {
+                        error_log("Final attempt to mark voucher by code '$voucherCode' failed: " . $e2->getMessage());
+                    }
+                }
+            }
+        }
+
+        // Earn points based on merchandise spend after voucher/points, excluding shipping
+        $subtotal = array_reduce($order['items'], function ($carry, $item) {
+            return $carry + ($item['unit_price'] * $item['quantity']);
+        }, 0.0);
+        $baseTotal = max(0, $subtotal - $pointsDiscount - ($order['voucher_discount'] ?? 0));
+        $pointsEarned = calculate_reward_points($baseTotal);
+        
+        if ($pointsEarned > 0) {
+            $this->db->prepare('UPDATE users SET reward_points = reward_points + ?, updated_at = NOW() WHERE id = ?')
+                ->execute([$pointsEarned, $userId]);
+        }
+
+        // Update reward tier
+        $stm = $this->db->prepare('SELECT reward_points FROM users WHERE id = ?');
+        $stm->execute([$userId]);
+        $userPoints = (float) $stm->fetchColumn();
+        $newTier = calculate_reward_tier($userPoints);
+        $this->db->prepare('UPDATE users SET reward_tier = ? WHERE id = ?')->execute([$newTier, $userId]);
     }
 
     public function addTracking(int $orderId, string $status, ?string $location = null, ?string $remarks = null): void

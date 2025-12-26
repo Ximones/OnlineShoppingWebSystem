@@ -177,6 +177,7 @@ class CartController extends Controller
         // Determine shipping & voucher from current request or stored context
         $shippingMethod = post('shipping_method', $context['shipping_method'] ?? 'standard');
         $voucherCode = trim((string) post('voucher_code', $context['voucher_code'] ?? ''));
+        $voucherIdFromPost = post('voucher_id') ? (int) post('voucher_id') : null;
 
         // Handle saving address from modal
         if (is_post() && post('action') === 'save_address') {
@@ -221,15 +222,73 @@ class CartController extends Controller
             $orderCount = $this->orders->countByUser($userId);
             $selectedVoucher = null;
             if ($voucherCode !== '') {
-                foreach ($userVouchers as $uv) {
-                    if (strcasecmp($uv['code'], $voucherCode) === 0) {
-                        $selectedVoucher = $uv;
-                        break;
+                // If voucher_id is provided from form, use that to find the exact voucher instance
+                if ($voucherIdFromPost) {
+                    foreach ($userVouchers as $uv) {
+                        if ((int) $uv['id'] === $voucherIdFromPost && strcasecmp($uv['code'], $voucherCode) === 0) {
+                            $selectedVoucher = $uv;
+                            break;
+                        }
+                    }
+                }
+                // Fallback to finding by code only (for backwards compatibility)
+                if (!$selectedVoucher) {
+                    foreach ($userVouchers as $uv) {
+                        if (strcasecmp($uv['code'], $voucherCode) === 0) {
+                            $selectedVoucher = $uv;
+                            break;
+                        }
                     }
                 }
             }
 
             $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
+            
+            // Re-find selectedVoucher using the effective voucher code from pricing summary
+            // This ensures we have the correct voucher that was actually applied
+            $effectiveVoucherCode = $pricingSummary['voucher_code'] ?? '';
+            if (!empty($effectiveVoucherCode)) {
+                // Re-find the voucher that was actually applied
+                // First, try to use the voucher_id from POST if it matches the effective code
+                $foundVoucher = null;
+                if ($voucherIdFromPost) {
+                    foreach ($userVouchers as $uv) {
+                        if ((int) $uv['id'] === $voucherIdFromPost && strcasecmp($uv['code'], $effectiveVoucherCode) === 0) {
+                            $foundVoucher = $uv;
+                            break;
+                        }
+                    }
+                }
+                // If not found by ID, or if ID wasn't provided, find by code
+                // If multiple vouchers with same code exist, prefer the most recently claimed one
+                if (!$foundVoucher) {
+                    $mostRecentClaimed = null;
+                    foreach ($userVouchers as $uv) {
+                        if (strcasecmp($uv['code'], $effectiveVoucherCode) === 0) {
+                            if (!$foundVoucher) {
+                                $foundVoucher = $uv;
+                                $mostRecentClaimed = $uv['claimed_at'] ?? null;
+                            } else {
+                                // If this voucher was claimed more recently, use it instead
+                                $thisClaimed = $uv['claimed_at'] ?? null;
+                                if ($thisClaimed && (!$mostRecentClaimed || $thisClaimed > $mostRecentClaimed)) {
+                                    $foundVoucher = $uv;
+                                    $mostRecentClaimed = $thisClaimed;
+                                }
+                            }
+                        }
+                    }
+                }
+                $selectedVoucher = $foundVoucher;
+            } else {
+                // No voucher was applied, clear selectedVoucher
+                $selectedVoucher = null;
+            }
+            
+            // Ensure selectedVoucher is valid - if we couldn't find it, clear it
+            if ($selectedVoucher && empty($selectedVoucher['id'])) {
+                $selectedVoucher = null;
+            }
 
             if ($pricingSummary['payable_total'] > 999999.99) {
                 flash('danger', 'Orders exceed standard purchase. Please contact support to arrange a wire transfer.');
@@ -299,6 +358,7 @@ class CartController extends Controller
                 'shipping_method' => $shippingMethod,
                 'voucher_discount' => $pricingSummary['voucher_discount'],
                 'voucher_code' => $pricingSummary['voucher_code'],
+                'voucher_id' => $selectedVoucher ? $selectedVoucher['id'] : null, // Store user_voucher id for later
                 'order_status' => $orderStatus,
             ]);
 
@@ -307,9 +367,18 @@ class CartController extends Controller
                 $this->products->reduceStock($item['product_id'], $item['quantity']);
             }
 
-            // Mark voucher as used if one was applied
-            if ($selectedVoucher && !empty($pricingSummary['voucher_code'])) {
-                $this->userVouchers->markUsed($selectedVoucher['id'], $orderId);
+            // Mark voucher as used if one was applied (only for PayLater, Stripe will be handled after payment)
+            if ($paymentMethod !== 'Stripe' && !empty($pricingSummary['voucher_code'])) {
+                // Use code-based marking which is more reliable
+                try {
+                    $marked = $this->userVouchers->markUsedByCode($userId, $pricingSummary['voucher_code'], $orderId);
+                    if (!$marked) {
+                        error_log("Warning: Could not mark voucher '{$pricingSummary['voucher_code']}' as used for order #$orderId. Voucher may have been used or doesn't exist.");
+                    }
+                } catch (\RuntimeException $e) {
+                    error_log("Error marking voucher '{$pricingSummary['voucher_code']}' as used for order #$orderId: " . $e->getMessage());
+                    // Continue without marking - voucher discount was already applied
+                }
             }
 
             // Record payment(s)
@@ -347,6 +416,12 @@ class CartController extends Controller
                         );
                     }
                 } elseif ($paymentMethod === 'Stripe') {
+                    // Store voucher info in session for stripe_success callback
+                    $_SESSION[self::CHECKOUT_SESSION_KEY] = [
+                        'voucher_code' => $pricingSummary['voucher_code'] ?? null,
+                        'voucher_id' => $selectedVoucher ? $selectedVoucher['id'] : null,
+                    ];
+                    
                     // 1. Prepare Items
                     $lineItems = [];
                     foreach ($items as $item) {
@@ -411,14 +486,26 @@ class CartController extends Controller
 
         $pricingSummary = $this->calculatePricingSummary($items, $user, $usePoints, $shippingMethod, $selectedVoucher, $orderCount);
         // Use effective voucher code from pricing summary (empty if not applicable)
-        $voucherCode = $pricingSummary['voucher_code'] ?? $voucherCode;
-
-        // Persist latest context for subsequent requests
+        $effectiveVoucherCode = $pricingSummary['voucher_code'] ?? '';
+        
+        // Re-find selectedVoucher using the effective voucher code (in case it changed)
+        // This ensures we have the correct voucher that was actually applied
+        $selectedVoucherId = null;
+        if (!empty($effectiveVoucherCode)) {
+            foreach ($userVouchers as $uv) {
+                if (strcasecmp($uv['code'], $effectiveVoucherCode) === 0) {
+                    $selectedVoucher = $uv;
+                    $selectedVoucherId = $uv['id']; // Store user_voucher.id
+                    break;
+                }
+            }
+        }
         $_SESSION[self::CHECKOUT_SESSION_KEY] = [
             'selected_item_ids' => $selectedIds,
             'use_points' => $usePoints,
             'shipping_method' => $shippingMethod,
             'voucher_code' => $voucherCode,
+            'voucher_id' => $selectedVoucherId, // Store user_voucher.id for Stripe payments
         ];
 
         $shippingOptions = $this->shippingOptions;
@@ -561,6 +648,53 @@ class CartController extends Controller
 
             // Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
+
+            // Process points deduction and voucher marking (deferred until payment succeeds)
+            // Get order details to find the voucher code that was actually applied
+            $orderDetail = $this->orders->detail($orderId);
+            $voucherCode = null;
+            $userVoucherId = null;
+            
+            // Try to get voucher info from order (if stored) or session
+            // First, check if we can get it from the order's pricing calculation
+            // The order doesn't store voucher_code directly, so we need to get it from session
+            $sessionData = $_SESSION[self::CHECKOUT_SESSION_KEY] ?? [];
+            $voucherCode = $sessionData['voucher_code'] ?? null;
+            $userVoucherId = isset($sessionData['voucher_id']) ? (int) $sessionData['voucher_id'] : null;
+            
+            // If we have a voucher code, find the correct voucher instance
+            if ($voucherCode) {
+                $userId = auth_id();
+                
+                // If we have voucher_id from session, verify it matches the code and is still active
+                if ($userVoucherId) {
+                    $userVouchers = $this->userVouchers->activeForUser($userId);
+                    $found = false;
+                    foreach ($userVouchers as $uv) {
+                        if ((int) $uv['id'] === $userVoucherId && strcasecmp($uv['code'], $voucherCode) === 0) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                    // If the voucher_id from session doesn't match or is no longer active, clear it
+                    if (!$found) {
+                        $userVoucherId = null;
+                    }
+                }
+                
+                // If we don't have a valid voucher_id, find by code
+                if (!$userVoucherId) {
+                    $userVouchers = $this->userVouchers->activeForUser($userId);
+                    foreach ($userVouchers as $uv) {
+                        if (strcasecmp($uv['code'], $voucherCode) === 0) {
+                            $userVoucherId = $uv['id'];
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            $this->orders->processPointsAndVouchers($orderId, $voucherCode, $userVoucherId);
 
             // Send E-Receipt Email
             $this->sendOrderReceipt($orderId);

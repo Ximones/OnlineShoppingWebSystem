@@ -60,6 +60,7 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
         </div>
         <form method="post" id="checkout-form" style="display: none;">
             <input type="hidden" name="checkout_step" id="checkout-step" value="">
+            <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
             <input type="text" id="shipping_name" name="shipping_name" value="<?= encode($displayAddress['name'] ?? ''); ?>" required>
             <input type="text" id="shipping_phone" name="shipping_phone" value="<?= encode($displayAddress['phone'] ?? ''); ?>" required>
             <textarea id="shipping_address" name="shipping_address" required><?= encode($displayAddress['address'] ?? ''); ?></textarea>
@@ -67,6 +68,7 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
     <?php else: ?>
         <form method="post" id="checkout-form">
             <input type="hidden" name="checkout_step" id="checkout-step" value="">
+            <input type="hidden" name="voucher_id" id="voucher_id_input" value="">
             <label for="shipping_name">Recipient Name</label>
             <input type="text" id="shipping_name" name="shipping_name" value="<?= encode(post('shipping_name', $user['name'] ?? '')); ?>" required>
             <?php err('shipping_name'); ?>
@@ -159,6 +161,7 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
                         <input type="radio"
                                name="voucher_code"
                                value="<?= encode($uv['code']); ?>"
+                               data-voucher-id="<?= $uv['id']; ?>"
                                form="checkout-form"
                                <?= $selected ? 'checked' : ''; ?>
                                <?= !$eligible ? 'disabled' : ''; ?>>
@@ -493,13 +496,24 @@ $outstandingPayLater = $outstandingPayLater ?? 0.0;
                 }
 
                 $('input[name="shipping_method"][form="checkout-form"]').on('change', submitUpdate);
-                $('input[name="voucher_code"][form="checkout-form"]').on('change', submitUpdate);
+                $('input[name="voucher_code"][form="checkout-form"]').on('change', function() {
+                    var voucherId = $(this).data('voucher-id') || '';
+                    $('#voucher_id_input').val(voucherId);
+                    submitUpdate();
+                });
                 $('input[name="use_points"][form="checkout-form"]').on('change', submitUpdate);
                 $('input[name="payment_method"][form="checkout-form"]').on('change', submitUpdate);
                 $('input[name="paylater_tenure"][form="checkout-form"]').on('change', submitUpdate);
             }
 
             attachPricingAutoUpdate();
+            
+            // Set initial voucher_id if a voucher is already selected
+            var $selectedVoucher = $('input[name="voucher_code"][form="checkout-form"]:checked');
+            if ($selectedVoucher.length) {
+                var voucherId = $selectedVoucher.data('voucher-id') || '';
+                $('#voucher_id_input').val(voucherId);
+            }
 
             // Update card selection styles on change
             $(document).on('change', 'input[name="shipping_method"][form="checkout-form"]', function() {
