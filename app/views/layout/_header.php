@@ -5,6 +5,13 @@
         </a>
 
         <nav class="nav">
+            <?php if (auth_user()): ?>
+                <span class="mode-indicator mode-indicator-store">
+                    <i class="fas fa-store"></i>
+                    <span>Store Mode</span>
+                </span>
+            <?php endif; ?>
+            
             <a href="?module=shop&action=catalog">Products</a>
 
             <?php if (auth_user()): ?>
@@ -17,7 +24,10 @@
                 <a href="?module=profile&action=index">Profile</a>
 
                 <?php if (is_admin()): ?>
-                    <a href="?module=admin&action=dashboard">Admin Dashboard</a>
+                    <a href="?module=admin&action=dashboard" class="switch-mode-link">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Admin Dashboard</span>
+                    </a>
                 <?php endif; ?>
 
                 <a href="?module=auth&action=logout">Logout</a>

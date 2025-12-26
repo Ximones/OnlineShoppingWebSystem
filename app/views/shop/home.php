@@ -9,7 +9,6 @@ $toiletProducts = $toiletProducts ?? [];
 $accessoryProducts = $accessoryProducts ?? [];
 $otherProducts = $otherProducts ?? [];
 $categories = $categories ?? [];
-$allPhotos = $allPhotos ?? [];
 ?>
 
 <section class="store-top-nav">
@@ -179,9 +178,8 @@ $allPhotos = $allPhotos ?? [];
             <div class="home-products-row" id="home-products-row-accessories">
                 <?php foreach ($accessoryProducts as $product): ?>
                     <?php
-                    $photoSrc = isset($allPhotos[$product['id']]) && !empty($allPhotos[$product['id']]['photo_path'])
-                        ? $allPhotos[$product['id']]['photo_path']
-                        : 'https://placehold.co/600x420';
+                    $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
+                    $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
                     ?>
                     <article class="home-product-card">
                         <div class="home-product-body">
@@ -222,9 +220,8 @@ $allPhotos = $allPhotos ?? [];
             <div class="home-products-row" id="home-products-row-other">
                 <?php foreach ($otherProducts as $product): ?>
                     <?php
-                    $photoSrc = isset($allPhotos[$product['id']]) && !empty($allPhotos[$product['id']]['photo_path'])
-                        ? $allPhotos[$product['id']]['photo_path']
-                        : 'https://placehold.co/600x420';
+                    $primaryPhoto = $productPhotoModel->getPrimaryPhoto($product['id']);
+                    $photoSrc = $primaryPhoto['photo_path'] ?? 'https://placehold.co/600x420';
                     ?>
                     <article class="home-product-card">
                         <div class="home-product-body">

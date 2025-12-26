@@ -135,6 +135,7 @@ main.container {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.4rem;
     padding: 0.3rem 0.7rem;
     border-radius: 999px;
     color: var(--color-text-muted);
@@ -155,6 +156,67 @@ main.container {
     background: transparent;
     transition: background 0.2s ease, opacity 0.2s ease;
     opacity: 0;
+}
+
+/* Mode Indicator */
+.mode-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    margin-right: 0.25rem;
+}
+
+.mode-indicator i {
+    font-size: 0.9rem;
+}
+
+.mode-indicator-admin {
+    background: linear-gradient(135deg, rgba(255, 59, 48, 0.15), rgba(255, 69, 58, 0.1));
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.3);
+}
+
+.mode-indicator-store {
+    background: linear-gradient(135deg, rgba(0, 122, 255, 0.15), rgba(10, 132, 255, 0.1));
+    color: #007aff;
+    border: 1px solid rgba(0, 122, 255, 0.3);
+}
+
+/* Switch Mode Link */
+.switch-mode-link {
+    background: linear-gradient(135deg, #0071e3, #0a84ff) !important;
+    color: #ffffff !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    border: 1px solid transparent !important;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25) !important;
+    margin-left: 0.5rem;
+}
+
+.switch-mode-link:hover {
+    background: linear-gradient(135deg, #005bb5, #0071e3) !important;
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4) !important;
+    transform: translateY(-1px);
+}
+
+.switch-mode-link::after {
+    display: none !important;
+}
+
+.switch-mode-link i {
+    font-size: 0.9rem;
+}
+
+.switch-mode-link span {
+    font-size: 0.9rem;
 }
 
 .nav a:hover,
