@@ -12,12 +12,14 @@ use function db;
 
 class AdminDashboardController extends AdminController
 {
+    // Model instances
     private Order $orders;
     private Product $products;
     private User $users;
     private Voucher $vouchers;
     private Payment $payments;
 
+    // Initialize model instances
     public function __construct()
     {
         $this->orders = new Order();
@@ -27,6 +29,7 @@ class AdminDashboardController extends AdminController
         $this->payments = new Payment();
     }
 
+    // Display admin dashboard with statistics and charts
     public function dashboard(): void
     {
         $this->requireAdmin();
@@ -44,26 +47,27 @@ class AdminDashboardController extends AdminController
             'active_vouchers' => (int) $db->query('SELECT COUNT(*) FROM vouchers WHERE is_active = 1')->fetchColumn(),
         ];
 
-        // Get recent orders
+        // Get recent orders (limit to 5)
         $recentOrders = $this->orders->adminList(['status' => '']);
         $recentOrders = array_slice($recentOrders, 0, 5);
 
-        // Get revenue stats
+        // Calculate total revenue from completed/shipped orders
         $revenueQuery = $db->query('SELECT COALESCE(SUM(total_amount), 0) FROM orders WHERE status IN ("completed", "shipped")');
         $stats['total_revenue'] = (float) $revenueQuery->fetchColumn();
 
-        // PayLater stats
+        // PayLater statistics
         $paylaterPendingQuery = $db->query('SELECT COUNT(*) FROM payments WHERE payment_method = "PayLater" AND status = "pending"');
         $stats['paylater_pending'] = (int) $paylaterPendingQuery->fetchColumn();
         
+        // Calculate outstanding PayLater amount
         $paylaterTotalQuery = $db->query('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_method = "PayLater" AND status = "pending"');
         $stats['paylater_outstanding'] = (float) $paylaterTotalQuery->fetchColumn();
         
+        // Calculate collected PayLater amount
         $paylaterCompletedQuery = $db->query('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_method = "PayLater" AND status = "completed"');
         $stats['paylater_collected'] = (float) $paylaterCompletedQuery->fetchColumn();
         
-        // PayLater interest revenue (interest earned from completed payments)
-        // Interest = amount - principal_amount for completed PayLater payments
+        // Calculate PayLater interest revenue (difference between amount and principal)
         $paylaterInterestQuery = $db->query('
             SELECT COALESCE(SUM(amount - principal_amount), 0) 
             FROM payments 
@@ -83,6 +87,7 @@ class AdminDashboardController extends AdminController
             GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY month ASC
         ");
+        // Build revenue by month array
         $revenueByMonth = [];
         while ($row = $revenueByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
             $revenueByMonth[] = $row;
@@ -94,6 +99,7 @@ class AdminDashboardController extends AdminController
             FROM orders
             GROUP BY status
         ");
+        // Build orders by status array
         $ordersByStatus = [];
         while ($row = $ordersByStatusQuery->fetch(\PDO::FETCH_ASSOC)) {
             $ordersByStatus[] = $row;
@@ -115,6 +121,7 @@ class AdminDashboardController extends AdminController
             ORDER BY total_sold DESC
             LIMIT 10
         ");
+        // Build top products array
         $topProducts = [];
         while ($row = $topProductsQuery->fetch(\PDO::FETCH_ASSOC)) {
             $topProducts[] = $row;
@@ -130,6 +137,7 @@ class AdminDashboardController extends AdminController
             GROUP BY DATE(created_at)
             ORDER BY date ASC
         ");
+        // Build orders over time array
         $ordersOverTime = [];
         while ($row = $ordersOverTimeQuery->fetch(\PDO::FETCH_ASSOC)) {
             $ordersOverTime[] = $row;
@@ -146,13 +154,13 @@ class AdminDashboardController extends AdminController
             GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY month ASC
         ");
+        // Build members by month array
         $membersByMonth = [];
         while ($row = $membersByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
             $membersByMonth[] = $row;
         }
 
-        // Chart Data: PayLater Outstanding Amount by Month (Last 12 Months)
-        // This shows the outstanding amount of pending bills created in each month
+        // PayLater outstanding amount by month (last 12 months)
         $paylaterOutstandingByMonthQuery = $db->query("
             SELECT 
                 DATE_FORMAT(p.payment_date, '%Y-%m') as month,
@@ -164,6 +172,7 @@ class AdminDashboardController extends AdminController
             GROUP BY DATE_FORMAT(p.payment_date, '%Y-%m')
             ORDER BY month ASC
         ");
+        // Build PayLater outstanding by month array
         $paylaterOutstandingByMonth = [];
         while ($row = $paylaterOutstandingByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
             $paylaterOutstandingByMonth[] = $row;
@@ -176,12 +185,13 @@ class AdminDashboardController extends AdminController
             WHERE payment_method = 'PayLater'
             GROUP BY status
         ");
+        // Build PayLater by status array
         $paylaterByStatus = [];
         while ($row = $paylaterByStatusQuery->fetch(\PDO::FETCH_ASSOC)) {
             $paylaterByStatus[] = $row;
         }
 
-        // Chart Data: PayLater Collected vs Outstanding Over Time (Last 12 Months)
+        // PayLater collected amount by month (last 12 months)
         $paylaterCollectedByMonthQuery = $db->query("
             SELECT 
                 DATE_FORMAT(p.payment_date, '%Y-%m') as month,
@@ -192,6 +202,7 @@ class AdminDashboardController extends AdminController
             GROUP BY DATE_FORMAT(p.payment_date, '%Y-%m')
             ORDER BY month ASC
         ");
+        // Build PayLater collected by month array
         $paylaterCollectedByMonth = [];
         while ($row = $paylaterCollectedByMonthQuery->fetch(\PDO::FETCH_ASSOC)) {
             $paylaterCollectedByMonth[] = $row;
@@ -208,11 +219,13 @@ class AdminDashboardController extends AdminController
             GROUP BY tenure_months
             ORDER BY tenure ASC
         ");
+        // Build PayLater by tenure array
         $paylaterByTenure = [];
         while ($row = $paylaterByTenureQuery->fetch(\PDO::FETCH_ASSOC)) {
             $paylaterByTenure[] = $row;
         }
 
+        // Render dashboard view with all data
         $this->render('admin/dashboard', compact(
             'stats', 
             'recentOrders',

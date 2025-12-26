@@ -18,6 +18,7 @@ class CartController extends Controller
 {
     private const CHECKOUT_SESSION_KEY = 'checkout_context';
 
+    // Model instances
     private Cart $cart;
     private Product $products;
     private Order $orders;
@@ -35,6 +36,7 @@ class CartController extends Controller
         'pickup'   => ['label' => 'Self Pickup (Free)', 'fee' => 0.0],
     ];
 
+    // Initialize model instances
     public function __construct()
     {
         $this->cart = new Cart();
@@ -46,6 +48,7 @@ class CartController extends Controller
         $this->payments = new Payment();
     }
 
+    // Display cart items
     public function index(): void
     {
         $this->requireAuth();
@@ -55,6 +58,7 @@ class CartController extends Controller
         $this->render('shop/cart', compact('items', 'user'));
     }
 
+    // Add product to cart
     public function add(): void
     {
         $this->requireAuth();
@@ -73,6 +77,7 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    // Buy now - add to cart and go directly to checkout
     public function buy_now(): void
     {
         $this->requireAuth();
@@ -91,6 +96,7 @@ class CartController extends Controller
         redirect('?module=cart&action=checkout');
     }
 
+    // Update cart item quantities
     public function update(): void
     {
         $this->requireAuth();
@@ -101,6 +107,7 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    // Remove single item from cart
     public function remove(): void
     {
         $this->requireAuth();
@@ -110,6 +117,7 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    // Remove multiple items from cart
     public function batchRemove(): void
     {
         $this->requireAuth();
@@ -123,6 +131,7 @@ class CartController extends Controller
         redirect('?module=cart&action=index');
     }
 
+    // Checkout process - handle order creation and payment
     public function checkout(): void
     {
         $this->requireAuth();
@@ -134,6 +143,7 @@ class CartController extends Controller
             redirect('?module=shop&action=catalog');
         }
 
+        // Get selected items from session context
         $context = $_SESSION[self::CHECKOUT_SESSION_KEY] ?? null;
         $selectedIds = $context['selected_item_ids'] ?? array_column($items, 'id');
         $selectedIds = array_map('intval', $selectedIds);
@@ -297,6 +307,7 @@ class CartController extends Controller
                 $this->products->reduceStock($item['product_id'], $item['quantity']);
             }
 
+            // Send e-receipt email
             $orderModel = new Order();
             $orderDetail = $orderModel->detail($orderId);
             $html = render_ereceipt($orderDetail, $user);
@@ -430,17 +441,19 @@ class CartController extends Controller
         ));
     }
 
+    // Prepare checkout - update cart and save selected items to session
     public function prepare_checkout(): void
     {
         $this->requireAuth();
 
-        // First, update cart quantities if provided
+        // Update cart quantities if provided
         if (post('items')) {
             foreach (post('items', []) as $itemId => $quantity) {
                 $this->cart->updateItem((int) $itemId, max(1, (int) $quantity));
             }
         }
 
+        // Save selected items and preferences to session
         $selected = array_filter(array_map('intval', post('selected_items', [])));
         if (empty($selected)) {
             flash('danger', 'Select at least one item to proceed.');
@@ -455,6 +468,7 @@ class CartController extends Controller
         redirect('?module=cart&action=checkout');
     }
 
+    // Calculate pricing summary including discounts, shipping, and vouchers
     private function calculatePricingSummary(array $items, ?array $user, bool $usePoints, string $shippingMethod, ?array $voucher, int $orderCount): array
     {
         $subtotal = array_reduce($items, fn($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0.0);
@@ -535,6 +549,7 @@ class CartController extends Controller
         ];
     }
 
+    // Handle successful Stripe payment
     public function stripe_success(): void
     {
         $this->requireAuth();
@@ -544,15 +559,11 @@ class CartController extends Controller
         $stripe = new StripeService();
 
         if ($stripe->isPaid($sessionId)) {
-            // 1. Record Payment
+            // Record payment and update order status
             $amountPaid = $stripe->getAmount($sessionId);
             $methodLabel = $stripe->getPaymentMethodLabel($sessionId);
             $this->payments->create($orderId, $methodLabel, $amountPaid, $amountPaid, 'completed');
-
-            // 2. Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
-
-            // 3. Clear Session
             unset($_SESSION[self::CHECKOUT_SESSION_KEY]);
 
             flash('success', 'Payment successful! Order confirmed.');
@@ -563,16 +574,15 @@ class CartController extends Controller
         }
     }
 
+    // Handle cancelled Stripe payment - restore stock and cart items
     public function stripe_cancel(): void
     {
         $this->requireAuth();
         $orderId = get('order_id');
         $userId = auth_id();
 
-        // 1. Mark Order as Cancelled
+        // Cancel order and restore stock
         $this->orders->updateStatus($orderId, 'cancelled');
-
-        // 2. Restore stock for cancelled order
         $order = $this->orders->detail($orderId);
         if ($order && $order['user_id'] == $userId) {
             foreach ($order['items'] as $item) {
@@ -580,10 +590,9 @@ class CartController extends Controller
             }
         }
 
-        // 3. Restore Items to Cart
+        // Restore items to cart
         if ($order && $order['user_id'] == $userId) {
             $cartId = $this->cart->activeCartId($userId);
-
             foreach ($order['items'] as $item) {
                 $this->cart->addItem($cartId, (int)$item['product_id'], (int)$item['quantity']);
             }

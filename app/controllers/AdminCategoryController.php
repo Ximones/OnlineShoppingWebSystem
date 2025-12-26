@@ -10,11 +10,13 @@ class AdminCategoryController extends AdminController
 {
     private Category $categories;
 
+    // Initialize category model
     public function __construct()
     {
         $this->categories = new Category();
     }
 
+    // Display all categories
     public function index(): void
     {
         $this->requireAdmin();
@@ -22,6 +24,7 @@ class AdminCategoryController extends AdminController
         $this->render('admin/categories/index', compact('categories'));
     }
 
+    // Create new category
     public function create(): void
     {
         $this->requireAdmin();
@@ -29,6 +32,7 @@ class AdminCategoryController extends AdminController
             'name' => ['required' => 'Name is required.'],
         ])) {
             $imageUrl = null;
+            // Handle image upload if provided
             if (!empty($_FILES['image']['name'])) {
                 try {
                     $imageUrl = handle_upload('image');
@@ -52,6 +56,7 @@ class AdminCategoryController extends AdminController
         $this->render('admin/categories/form');
     }
 
+    // Edit existing category
     public function edit(): void
     {
         $this->requireAdmin();
@@ -62,6 +67,7 @@ class AdminCategoryController extends AdminController
             redirect('?module=admin&resource=categories&action=index');
         }
 
+        // Process form submission
         if (is_post()) {
             if (validate([
                 'name' => ['required' => 'Name is required.'],
@@ -94,6 +100,7 @@ class AdminCategoryController extends AdminController
         $this->render('admin/categories/form', compact('category'));
     }
 
+    // Delete single category
     public function delete(): void
     {
         $this->requireAdmin();
@@ -107,6 +114,7 @@ class AdminCategoryController extends AdminController
         redirect('?module=admin&resource=categories&action=index');
     }
 
+    // Delete multiple categories at once
     public function batchDelete(): void
     {
         $this->requireAdmin();
@@ -116,6 +124,7 @@ class AdminCategoryController extends AdminController
             redirect('?module=admin&resource=categories&action=index');
         }
         $failed = $this->categories->batchDelete($ids);
+        // Calculate success count
         $successCount = count($ids) - count($failed);
         if ($successCount > 0) {
             flash('success', "$successCount category(ies) deleted.");
