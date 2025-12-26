@@ -69,6 +69,14 @@
         <div style="font-size: 14px; color: #999;">RM <?= number_format($stats['paylater_outstanding'] ?? 0, 2); ?> outstanding</div>
         <a href="?module=admin&resource=paylater&action=index" class="btn small" style="margin-top: 10px;">View PayLater</a>
     </div>
+
+    <!-- PayLater Interest Revenue Card -->
+    <div class="panel" style="padding: 20px; text-align: center;">
+        <div style="font-size: 36px; font-weight: bold; color: #9c27b0; margin-bottom: 10px;">
+            RM <?= number_format($stats['paylater_interest_revenue'] ?? 0, 2); ?>
+        </div>
+        <div style="font-size: 18px; color: #666;">PayLater Interest Revenue</div>
+    </div>
 </div>
 
 <!-- Charts Section -->

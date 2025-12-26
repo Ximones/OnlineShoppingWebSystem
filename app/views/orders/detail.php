@@ -189,7 +189,11 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                 $payLaterPayments = [];
                 $otherPayments = [];
                 foreach ($order['payments'] as $payment) {
-                    if ($payment['payment_method'] === 'PayLater') {
+                    // Detect PayLater payments by checking for PayLater-specific fields
+                    // This works even if payment_method was updated after payment
+                    if ($payment['payment_method'] === 'PayLater' || 
+                        !empty($payment['billing_due_date']) || 
+                        !empty($payment['tenure_months'])) {
                         $payLaterPayments[] = $payment;
                     } else {
                         $otherPayments[] = $payment;
@@ -202,7 +206,15 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                         <div class="order-info-row">
                             <span class="order-info-label">Payment Method</span>
                             <span class="order-info-value">
-                                <?= encode($payment['payment_method']); ?>
+                                <?php 
+                                // Simplify Stripe payment methods to just "Stripe"
+                                $method = $payment['payment_method'];
+                                if (strpos($method, 'Stripe') === 0) {
+                                    echo 'Stripe';
+                                } else {
+                                    echo encode($method);
+                                }
+                                ?>
                             </span>
                         </div>
                         <div class="order-info-row">
@@ -229,28 +241,6 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                         <span class="order-info-label">Payment Method</span>
                         <span class="order-info-value">PayLater</span>
                     </div>
-                    <?php if (count($payLaterPayments) > 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
-                        <div class="order-info-row">
-                            <span class="order-info-label">PayLater Plan</span>
-                            <span class="order-info-value">
-                                <?= count($payLaterPayments); ?> instalments (<?= $payLaterPayments[0]['tenure_months']; ?> months)
-                            </span>
-                        </div>
-                    <?php elseif (count($payLaterPayments) === 1 && !empty($payLaterPayments[0]['tenure_months'])): ?>
-                        <div class="order-info-row">
-                            <span class="order-info-label">PayLater Plan</span>
-                            <span class="order-info-value">
-                                1 instalment (<?= $payLaterPayments[0]['tenure_months']; ?> month)
-                            </span>
-                        </div>
-                    <?php else: ?>
-                        <div class="order-info-row">
-                            <span class="order-info-label">PayLater Plan</span>
-                            <span class="order-info-value">
-                                <?= count($payLaterPayments); ?> instalment<?= count($payLaterPayments) > 1 ? 's' : ''; ?>
-                            </span>
-                        </div>
-                    <?php endif; ?>
                     <div style="margin-top: 1rem;">
                         <a href="?module=bills&action=index" class="btn secondary">See more in PayLater</a>
                     </div>

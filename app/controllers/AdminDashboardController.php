@@ -61,6 +61,16 @@ class AdminDashboardController extends AdminController
         
         $paylaterCompletedQuery = $db->query('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_method = "PayLater" AND status = "completed"');
         $stats['paylater_collected'] = (float) $paylaterCompletedQuery->fetchColumn();
+        
+        // PayLater interest revenue (interest earned from completed payments)
+        // Interest = amount - principal_amount for completed PayLater payments
+        $paylaterInterestQuery = $db->query('
+            SELECT COALESCE(SUM(amount - principal_amount), 0) 
+            FROM payments 
+            WHERE (payment_method = "PayLater" OR billing_due_date IS NOT NULL OR tenure_months IS NOT NULL) 
+            AND status = "completed"
+        ');
+        $stats['paylater_interest_revenue'] = (float) $paylaterInterestQuery->fetchColumn();
 
         // Chart Data: Revenue over last 12 months
         $revenueByMonthQuery = $db->query("
