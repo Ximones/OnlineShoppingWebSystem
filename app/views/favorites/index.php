@@ -57,8 +57,7 @@
 
                             <!-- Details -->
 
-                            class="btn secondary btn small"
-                            href="?module=shop&action=detail&id=<?= $product['id']; ?>">
+                            <a class="btn secondary btn small" href="?module=shop&action=detail&id=<?= $product['id']; ?>"></button>
                             Details
                             </a>
                         <?php endif; ?>
