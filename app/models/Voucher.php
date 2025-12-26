@@ -108,6 +108,13 @@ class Voucher
         $stm = $this->db->prepare("DELETE FROM vouchers WHERE id IN ($placeholders)");
         $stm->execute($ids);
     }
+
+        public function findByCode(string $code): ?array
+    {
+        $stm = $this->db->prepare('SELECT * FROM vouchers WHERE code = ? LIMIT 1');
+        $stm->execute([$code]);
+        return $stm->fetch(\PDO::FETCH_ASSOC) ?: null;
+    }
 }
 
 

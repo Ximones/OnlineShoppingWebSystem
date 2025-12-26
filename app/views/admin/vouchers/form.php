@@ -21,12 +21,17 @@
                             Unique code customers will enter (e.g., SAVE20)
                         </small>
                     </label>
-                    <input type="text" id="code" name="code" 
-                           value="<?= encode(post('code', $voucher['code'] ?? '')); ?>" 
-                           required 
-                           style="text-transform: uppercase;"
-                           placeholder="e.g., SAVE20">
+                    <input type="text" id="code" name="code"
+                        value="<?= encode(post('code', $voucher['code'] ?? '')); ?>"
+                        required
+                        style="text-transform: uppercase;"
+                        placeholder="e.g., SAVE20">
                     <?php err('code'); ?>
+
+                    <small id="code-error" style="color: red; display: none;">
+                        This code is already taken.
+                    </small>
+
                 </div>
 
                 <div class="form-group">
@@ -36,11 +41,12 @@
                             Display name for this voucher
                         </small>
                     </label>
-                    <input type="text" id="name" name="name" 
-                           value="<?= encode(post('name', $voucher['name'] ?? '')); ?>" 
-                           required
-                           placeholder="e.g., Summer Sale 20% Off">
+                    <input type="text" id="name" name="name"
+                        value="<?= encode(post('name', $voucher['name'] ?? '')); ?>"
+                        required
+                        placeholder="e.g., Summer Sale 20% Off">
                     <?php err('name'); ?>
+
                 </div>
             </div>
 
@@ -50,8 +56,8 @@
                     Additional details about this voucher (optional)
                 </small>
             </label>
-            <textarea id="description" name="description" rows="4" 
-                      placeholder="Enter voucher description..."><?= encode(post('description', $voucher['description'] ?? '')); ?></textarea>
+            <textarea id="description" name="description" rows="4"
+                placeholder="Enter voucher description..."><?= encode(post('description', $voucher['description'] ?? '')); ?></textarea>
         </div>
 
         <!-- Discount Configuration Section -->
@@ -83,10 +89,10 @@
                             Enter the discount amount
                         </small>
                     </label>
-                    <input type="number" step="0.01" min="0" id="value" name="value" 
-                           value="<?= encode(post('value', $voucher['value'] ?? '0')); ?>" 
-                           required
-                           placeholder="0.00">
+                    <input type="number" step="0.01" min="0" id="value" name="value"
+                        value="<?= encode(post('value', $voucher['value'] ?? '0')); ?>"
+                        required
+                        placeholder="0.00">
                     <?php err('value'); ?>
                 </div>
             </div>
@@ -99,9 +105,9 @@
                             Minimum order amount required to use this voucher
                         </small>
                     </label>
-                    <input type="number" step="0.01" min="0" id="min_subtotal" name="min_subtotal" 
-                           value="<?= encode(post('min_subtotal', $voucher['min_subtotal'] ?? '0')); ?>"
-                           placeholder="0.00">
+                    <input type="number" step="0.01" min="0" id="min_subtotal" name="min_subtotal"
+                        value="<?= encode(post('min_subtotal', $voucher['min_subtotal'] ?? '0')); ?>"
+                        placeholder="0.00">
                 </div>
 
                 <div class="form-group" id="max_discount-group">
@@ -111,9 +117,9 @@
                             Maximum discount cap (for percentage vouchers)
                         </small>
                     </label>
-                    <input type="number" step="0.01" min="0" id="max_discount" name="max_discount" 
-                           value="<?= encode(post('max_discount', $voucher['max_discount'] ?? '')); ?>"
-                           placeholder="Leave empty for no limit">
+                    <input type="number" step="0.01" min="0" id="max_discount" name="max_discount"
+                        value="<?= encode(post('max_discount', $voucher['max_discount'] ?? '')); ?>"
+                        placeholder="Leave empty for no limit">
                 </div>
             </div>
         </div>
@@ -130,9 +136,9 @@
                             Maximum number of times this voucher can be claimed
                         </small>
                     </label>
-                    <input type="number" step="1" min="1" id="max_claims" name="max_claims" 
-                           value="<?= encode(post('max_claims', $voucher['max_claims'] ?? '')); ?>"
-                           placeholder="Leave empty for unlimited">
+                    <input type="number" step="1" min="1" id="max_claims" name="max_claims"
+                        value="<?= encode(post('max_claims', $voucher['max_claims'] ?? '')); ?>"
+                        placeholder="Leave empty for unlimited">
                 </div>
 
                 <div class="form-group">
@@ -142,7 +148,7 @@
                             When the voucher becomes available
                         </small>
                     </label>
-                    <?php 
+                    <?php
                     $startAt = post('start_at', $voucher['start_at'] ?? '');
                     if ($startAt && strpos($startAt, ' ') !== false) {
                         $startAt = date('Y-m-d\TH:i', strtotime($startAt));
@@ -158,7 +164,7 @@
                             When the voucher expires
                         </small>
                     </label>
-                    <?php 
+                    <?php
                     $endAt = post('end_at', $voucher['end_at'] ?? '');
                     if ($endAt && strpos($endAt, ' ') !== false) {
                         $endAt = date('Y-m-d\TH:i', strtotime($endAt));
@@ -178,8 +184,8 @@
                             <small style="color: var(--color-text-muted);">Discount will only apply to shipping costs, not product prices</small>
                         </div>
                         <input type="checkbox" name="is_shipping_only" value="1"
-                               <?= post('is_shipping_only', $voucher['is_shipping_only'] ?? 0) ? 'checked' : ''; ?>
-                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
+                            <?= post('is_shipping_only', $voucher['is_shipping_only'] ?? 0) ? 'checked' : ''; ?>
+                            style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
 
                     <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer;">
@@ -188,8 +194,8 @@
                             <small style="color: var(--color-text-muted);">Only customers with 0 order history can use this voucher</small>
                         </div>
                         <input type="checkbox" name="is_first_order_only" value="1"
-                               <?= post('is_first_order_only', $voucher['is_first_order_only'] ?? 0) ? 'checked' : ''; ?>
-                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
+                            <?= post('is_first_order_only', $voucher['is_first_order_only'] ?? 0) ? 'checked' : ''; ?>
+                            style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
 
                     <label style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; cursor: pointer;">
@@ -198,8 +204,8 @@
                             <small style="color: var(--color-text-muted);">Enable or disable this voucher</small>
                         </div>
                         <input type="checkbox" name="is_active" value="1"
-                               <?= post('is_active', $voucher['is_active'] ?? 1) ? 'checked' : ''; ?>
-                               style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
+                            <?= post('is_active', $voucher['is_active'] ?? 1) ? 'checked' : ''; ?>
+                            style="margin-top: 0.25rem; cursor: pointer; width: 18px; height: 18px;">
                     </label>
                 </div>
             </div>
@@ -219,72 +225,116 @@
 </section>
 
 <script>
-function updateVoucherType() {
-    const type = document.getElementById('type').value;
-    const valueGroup = document.getElementById('value-group');
-    const valueHint = document.getElementById('value-hint');
-    const valueInput = document.getElementById('value');
-    const maxDiscountGroup = document.getElementById('max_discount-group');
-    
-    // Update hint text based on voucher type
-    switch(type) {
-        case 'amount':
-            valueHint.textContent = 'Enter the fixed discount amount in RM';
-            valueInput.placeholder = '0.00';
-            maxDiscountGroup.style.display = 'none';
-            break;
-        case 'percent':
-            valueHint.textContent = 'Enter the percentage discount (e.g., 20 for 20%)';
-            valueInput.placeholder = '0';
-            valueInput.step = '1';
-            valueInput.max = '100';
-            maxDiscountGroup.style.display = 'block';
-            break;
-        case 'shipping_amount':
-            valueHint.textContent = 'Enter the shipping discount amount in RM';
-            valueInput.placeholder = '0.00';
-            valueInput.step = '0.01';
-            valueInput.max = '';
-            maxDiscountGroup.style.display = 'none';
-            break;
-        case 'free_shipping':
-            valueHint.textContent = 'Value is not required for free shipping';
-            valueInput.placeholder = '0';
-            valueInput.step = '0.01';
-            valueInput.max = '';
-            valueInput.required = false;
-            maxDiscountGroup.style.display = 'none';
-            break;
-    }
-    
-    // For free shipping, make value optional
-    if (type === 'free_shipping') {
-        valueInput.removeAttribute('required');
-        valueInput.value = '0';
-    } else {
-        valueInput.setAttribute('required', 'required');
-    }
-}
+    function updateVoucherType() {
+        const type = document.getElementById('type').value;
+        const valueGroup = document.getElementById('value-group');
+        const valueHint = document.getElementById('value-hint');
+        const valueInput = document.getElementById('value');
+        const maxDiscountGroup = document.getElementById('max_discount-group');
 
-// Auto-uppercase voucher code
-document.getElementById('code')?.addEventListener('input', function(e) {
-    e.target.value = e.target.value.toUpperCase();
-});
+        // Update hint text based on voucher type
+        switch (type) {
+            case 'amount':
+                valueHint.textContent = 'Enter the fixed discount amount in RM';
+                valueInput.placeholder = '0.00';
+                maxDiscountGroup.style.display = 'none';
+                break;
+            case 'percent':
+                valueHint.textContent = 'Enter the percentage discount (e.g., 20 for 20%)';
+                valueInput.placeholder = '0';
+                valueInput.step = '1';
+                valueInput.max = '100';
+                maxDiscountGroup.style.display = 'block';
+                break;
+            case 'shipping_amount':
+                valueHint.textContent = 'Enter the shipping discount amount in RM';
+                valueInput.placeholder = '0.00';
+                valueInput.step = '0.01';
+                valueInput.max = '';
+                maxDiscountGroup.style.display = 'none';
+                break;
+            case 'free_shipping':
+                valueHint.textContent = 'Value is not required for free shipping';
+                valueInput.placeholder = '0';
+                valueInput.step = '0.01';
+                valueInput.max = '';
+                valueInput.required = false;
+                maxDiscountGroup.style.display = 'none';
+                break;
+        }
 
-// Validate date range
-document.getElementById('end_at')?.addEventListener('change', function() {
-    const startAt = document.getElementById('start_at').value;
-    const endAt = this.value;
-    if (startAt && endAt && new Date(endAt) <= new Date(startAt)) {
-        alert('End date must be after start date.');
-        this.value = '';
+        // For free shipping, make value optional
+        if (type === 'free_shipping') {
+            valueInput.removeAttribute('required');
+            valueInput.value = '0';
+        } else {
+            valueInput.setAttribute('required', 'required');
+        }
     }
-});
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    updateVoucherType();
-});
+    function validationVoucherCode() {
+        const form = document.querySelector('form'); // Select the form
+        const codeInput = document.querySelector('input[name="code"]');
+        const errorMsg = document.getElementById('code-error');
+        const submitBtn = document.querySelector('button[type="submit"]');
+
+        // Get current ID if editing ( from PHP)
+        const currentId = <?= isset($voucher['id']) ? $voucher['id'] : 0 ?>;
+
+        let isCodeValid = true; // Flag to track validity
+
+        // Live Check while typing
+        let timeout = null;
+        codeInput.addEventListener('input', function() {
+            const code = this.value.trim();
+            clearTimeout(timeout);
+
+            // Reset UI
+            errorMsg.style.display = 'none';
+            this.style.borderColor = '';
+            isCodeValid = true; // Assume valid until proven wrong
+
+            if (code.length === 0) return;
+
+            timeout = setTimeout(() => {
+                fetch(`?module=admin.vouchers&action=check_VoucherCode&code=${encodeURIComponent(code)}&id=${currentId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.exists) {
+                            showError();
+                        }
+                    });
+            }, 300);
+        });
+
+        // Helper to show error
+        function showError() {
+            errorMsg.style.display = 'block';
+            errorMsg.innerText = 'This ID is already taken. Please change it.';
+            codeInput.style.borderColor = 'red';
+            isCodeValid = false;
+        }
+
+    }
+
+    // Auto-uppercase voucher code
+    document.getElementById('code')?.addEventListener('input', function(e) {
+        e.target.value = e.target.value.toUpperCase();
+    });
+
+    // Validate date range
+    document.getElementById('end_at')?.addEventListener('change', function() {
+        const startAt = document.getElementById('start_at').value;
+        const endAt = this.value;
+        if (startAt && endAt && new Date(endAt) <= new Date(startAt)) {
+            alert('End date must be after start date.');
+            this.value = '';
+        }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateVoucherType();
+        validationVoucherCode();
+    });
 </script>
-
-
