@@ -264,6 +264,21 @@ class User
         return $stm->fetchAll();
     }
 
+    public function listAdmins(string $keyword = ''): array
+    {
+        $sql = 'SELECT * FROM users WHERE role IN ("admin", "superadmin")';
+        $params = [];
+        if ($keyword) {
+            $sql .= ' AND (name LIKE ? OR email LIKE ?)';
+            $params = ["%$keyword%", "%$keyword%"];
+        }
+        $sql .= ' ORDER BY created_at DESC';
+
+        $stm = $this->db->prepare($sql);
+        $stm->execute($params);
+        return $stm->fetchAll();
+    }
+
     public function updateLockout(int $userId, int $attempts, ?string $lockoutUntil = null): void
     {
         $stmt = $this->db->prepare("UPDATE users SET login_attempts = ?, lockout_until = ? WHERE id = ?");
@@ -285,8 +300,8 @@ class User
     public function deleteMember(int $id): void
     {
         $user = $this->find($id);
-        if ($user && $user['role'] === 'admin') {
-            throw new \RuntimeException('Cannot delete admin users.');
+        if ($user && ($user['role'] === 'admin' || $user['role'] === 'superadmin')) {
+            throw new \RuntimeException('Cannot delete admin users. Use deleteAdmin() method instead.');
         }
         
         // Check for incomplete orders (pending, processing, shipped)
@@ -299,6 +314,37 @@ class User
         
         if ($incompleteCount > 0) {
             throw new \RuntimeException("Cannot delete member. This member has $incompleteCount incomplete order(s) (pending, processing, or shipped). Please complete or cancel these orders first.");
+        }
+        
+        $stm = $this->db->prepare('DELETE FROM users WHERE id = ?');
+        $stm->execute([$id]);
+    }
+
+    public function deleteAdmin(int $id, bool $allowSuperadmin = false): void
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            throw new \RuntimeException('Admin not found.');
+        }
+        
+        if ($user['role'] === 'superadmin' && !$allowSuperadmin) {
+            throw new \RuntimeException('Cannot delete superadmin users.');
+        }
+        
+        if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
+            throw new \RuntimeException('User is not an admin. Use deleteMember() method instead.');
+        }
+        
+        // Check for incomplete orders (pending, processing, shipped)
+        $incompleteStatuses = ['pending', 'processing', 'shipped'];
+        $placeholders = implode(',', array_fill(0, count($incompleteStatuses), '?'));
+        $stm = $this->db->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ? AND status IN ($placeholders)");
+        $params = array_merge([$id], $incompleteStatuses);
+        $stm->execute($params);
+        $incompleteCount = (int) $stm->fetchColumn();
+        
+        if ($incompleteCount > 0) {
+            throw new \RuntimeException("Cannot delete admin. This admin has $incompleteCount incomplete order(s) (pending, processing, or shipped). Please complete or cancel these orders first.");
         }
         
         $stm = $this->db->prepare('DELETE FROM users WHERE id = ?');
@@ -327,9 +373,28 @@ class User
         if (!$user) {
             throw new \RuntimeException('User not found.');
         }
-        if ($user['role'] === 'admin') {
-            throw new \RuntimeException('Cannot block admin users.');
+        if ($user['role'] === 'admin' || $user['role'] === 'superadmin') {
+            throw new \RuntimeException('Cannot block admin users. Use blockAdmin() method instead.');
         }
+        $stm = $this->db->prepare('UPDATE users SET status = "blocked", updated_at = NOW() WHERE id = ?');
+        $stm->execute([$id]);
+    }
+
+    public function blockAdmin(int $id, bool $allowSuperadmin = false): void
+    {
+        $user = $this->find($id);
+        if (!$user) {
+            throw new \RuntimeException('Admin not found.');
+        }
+        
+        if ($user['role'] === 'superadmin' && !$allowSuperadmin) {
+            throw new \RuntimeException('Cannot block superadmin users.');
+        }
+        
+        if ($user['role'] !== 'admin' && $user['role'] !== 'superadmin') {
+            throw new \RuntimeException('User is not an admin. Use block() method instead.');
+        }
+        
         $stm = $this->db->prepare('UPDATE users SET status = "blocked", updated_at = NOW() WHERE id = ?');
         $stm->execute([$id]);
     }

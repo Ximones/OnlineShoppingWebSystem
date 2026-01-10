@@ -14,6 +14,9 @@
             <a href="?module=admin&resource=products&action=index">Products</a>
             <a href="?module=admin&resource=categories&action=index">Categories</a>
             <a href="?module=admin&resource=members&action=index">Members</a>
+            <?php if (is_superadmin()): ?>
+                <a href="?module=admin&resource=admins&action=index">Admins</a>
+            <?php endif; ?>
             <a href="?module=admin&resource=vouchers&action=index">Vouchers</a>
             <a href="?module=admin&resource=orders&action=index">Orders</a>
             <a href="?module=admin&resource=paylater&action=index">PayLater</a>

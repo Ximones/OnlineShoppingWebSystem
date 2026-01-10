@@ -8,6 +8,7 @@ class Router {
         'game' => 'GameController',
         'admin' => 'AdminDashboardController',
         'admin.members' => 'AdminMemberController',
+        'admin.admins' => 'AdminAdminController',
         'admin.products' => 'AdminProductController',
         'admin.categories' => 'AdminCategoryController',
         'admin.vouchers' => 'AdminVoucherController',

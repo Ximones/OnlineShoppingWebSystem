@@ -8,6 +8,7 @@ define('APP_UPLOAD_PATH', __DIR__ . '/../public/uploads/');
 define('APP_UPLOAD_URL', '/public/uploads/');
 
 $GLOBALS['_roles'] = [
+    'superadmin' => 'Super Admin',
     'admin' => 'Admin',
     'member' => 'Member',
 ];

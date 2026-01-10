@@ -5,6 +5,7 @@ namespace App\Core;
 use function flash;
 use function require_auth;
 use function require_role;
+use function is_superadmin;
 
 abstract class AdminController {
     protected string $layout = 'layout/admin';
@@ -26,7 +27,11 @@ abstract class AdminController {
     }
 
     protected function requireAdmin(): void {
-        require_role(['admin']);
+        require_role(['admin', 'superadmin']);
+    }
+
+    protected function requireSuperAdmin(): void {
+        require_role(['superadmin']);
     }
 }
 

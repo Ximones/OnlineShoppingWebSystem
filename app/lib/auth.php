@@ -27,7 +27,12 @@ function auth_logout(): void {
 }
 
 function is_admin(): bool {
-    return auth_role() === 'admin';
+    $role = auth_role();
+    return $role === 'admin' || $role === 'superadmin';
+}
+
+function is_superadmin(): bool {
+    return auth_role() === 'superadmin';
 }
 
 function require_auth(): void {
