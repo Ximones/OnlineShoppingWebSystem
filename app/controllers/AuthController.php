@@ -58,6 +58,14 @@ class AuthController extends Controller
                     $this->users->resetLockout($user['id']);
                     auth_login($user);
                     flash('success', 'Welcome back, ' . $user['name'] . '!');
+                    
+                    // Support redirect after login
+                    $redirect = get('redirect');
+                    if (!empty($redirect)) {
+                        redirect($redirect);
+                        return;
+                    }
+                    
                     redirect('?module=shop&action=home');
                 } else {
                     // Wrong password logic

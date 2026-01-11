@@ -30,7 +30,7 @@ abstract class Controller {
     }
 
     protected function requireAdmin(): void {
-        require_role(['admin']);
+        require_role(['admin', 'superadmin']);
     }
 }
 

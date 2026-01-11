@@ -1,4 +1,112 @@
 $(function () {
+    // Mobile menu toggle
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const nav = document.querySelector('.nav');
+
+    if (mobileMenuToggle && nav) {
+        mobileMenuToggle.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            nav.classList.toggle('mobile-open');
+            
+            // Prevent body scroll when menu is open
+            if (!isExpanded) {
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (mobileMenuToggle && nav && 
+                !nav.contains(e.target) && 
+                !mobileMenuToggle.contains(e.target)) {
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                nav.classList.remove('mobile-open');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // Close menu when clicking on a nav link
+        nav.addEventListener('click', function(e) {
+            if (e.target.tagName === 'A') {
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                nav.classList.remove('mobile-open');
+                document.body.style.overflow = '';
+            }
+        });
+
+            // Close menu on window resize (if resizing to desktop)
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 968) {
+                mobileMenuToggle.setAttribute('aria-expanded', 'false');
+                nav.classList.remove('mobile-open');
+                document.body.style.overflow = '';
+            }
+        });
+    }
+
+    // Mobile table optimization: Add data-label attributes to table cells
+    function optimizeTablesForMobile() {
+        const isMobile = window.innerWidth <= 640;
+        
+        document.querySelectorAll('.table').forEach(function(table) {
+            if (isMobile) {
+                // Remove mobile-scroll class if it exists
+                table.classList.remove('mobile-scroll');
+                
+                const headers = Array.from(table.querySelectorAll('thead th'));
+                if (headers.length === 0) return;
+                
+                const headerTexts = headers.map(function(th) {
+                    return th.textContent.trim().replace(/[^\w\s]/gi, '');
+                });
+
+                table.querySelectorAll('tbody tr').forEach(function(row) {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    cells.forEach(function(cell, index) {
+                        // Check if cell contains only a checkbox
+                        const hasOnlyCheckbox = cell.querySelector('input[type="checkbox"]') && 
+                                                cell.children.length === 1 && 
+                                                cell.textContent.trim() === '';
+                        
+                        if (hasOnlyCheckbox) {
+                            // Mark checkbox cells to hide labels
+                            cell.classList.add('checkbox-cell');
+                            // Don't add data-label for checkbox-only cells
+                        } else if (headerTexts[index] && !cell.hasAttribute('data-label')) {
+                            cell.setAttribute('data-label', headerTexts[index]);
+                        }
+                    });
+                });
+            } else {
+                // On desktop, remove data-label attributes and checkbox-cell class if needed
+                table.querySelectorAll('td[data-label]').forEach(function(cell) {
+                    cell.removeAttribute('data-label');
+                });
+                table.querySelectorAll('td.checkbox-cell').forEach(function(cell) {
+                    cell.classList.remove('checkbox-cell');
+                });
+            }
+        });
+    }
+
+    // Run on load and resize with debounce
+    let resizeTimeout;
+    function handleResize() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(optimizeTablesForMobile, 150);
+    }
+
+    optimizeTablesForMobile();
+    window.addEventListener('resize', handleResize);
+    
+    // Also optimize tables after AJAX content loads
+    $(document).ajaxComplete(function() {
+        optimizeTablesForMobile();
+    });
+
     $('.dropdown-toggle').on('click', function (e) {
         e.preventDefault();
         $(this).next('.dropdown-menu').toggleClass('show');
@@ -75,6 +183,18 @@ $(function () {
         $panel.find('.paylater-tab-content').removeClass('is-active');
         $panel.find('#' + targetId).addClass('is-active');
     });
+
+    // Collapsible tracking history on mobile
+    const trackingToggle = document.querySelector('.tracking-toggle-btn');
+    const trackingSection = document.querySelector('.tracking-history-section');
+    
+    if (trackingToggle && trackingSection) {
+        trackingToggle.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            trackingSection.classList.toggle('collapsed');
+        });
+    }
 
     // favorites toggle 
     const initFavoriteToggle = function() {

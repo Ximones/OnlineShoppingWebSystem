@@ -1,9 +1,21 @@
 <?php $title = 'Order #' . $order['id']; ?>
-<?php
+    <?php
 $statusSteps = ['pending', 'processing', 'shipped', 'completed'];
 $currentStatus = strtolower($order['status']);
+$isPickupOrder = stripos($order['shipping_method'] ?? '', 'pickup') !== false;
+
+// For pickup orders, replace 'shipped' with 'picked_up' in the status steps
+if ($isPickupOrder) {
+    $statusSteps = ['pending', 'processing', 'picked_up', 'completed'];
+}
+
 if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)) {
     $statusSteps[] = 'cancelled';
+}
+
+// If status is picked_up but not in steps, add it
+if ($currentStatus === 'picked_up' && !in_array('picked_up', $statusSteps, true)) {
+    array_splice($statusSteps, 2, 0, 'picked_up'); // Insert after processing
 }
 ?>
 
@@ -20,10 +32,10 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
                 <?= encode(ucfirst($order['status'])); ?>
             </div>
             <div class="order-detail-buttons">
-                <a href="?module=orders&action=download_receipt&id=<?= $order['id']; ?>" class="btn secondary small" style="display:inline-block; margin-left: 0.5rem;">
-                    <i class="fas fa-download"></i> Download Receipt
-                </a>
                 <?php if (!is_admin()): ?>
+                    <a href="?module=orders&action=download_receipt&id=<?= $order['id']; ?>" class="btn secondary small" style="display:inline-block; margin-left: 0.5rem;">
+                        <i class="fas fa-download"></i> Download Receipt
+                    </a>
                     <form method="post" action="?module=orders&action=reorder&id=<?= $order['id']; ?>" style="display:inline-block; margin-left: 0.5rem;">
                         <button type="submit" class="btn secondary small">Order Again</button>
                     </form>
@@ -61,7 +73,7 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
             <div class="order-info-row">
                 <span class="order-info-label">Latest update</span>
                 <span class="order-info-value">
-                    <?= encode($latestTracking['status']); ?>
+                    <?= encode(ucfirst(str_replace('_', ' ', $latestTracking['status']))); ?>
                     <?php if (!empty($latestTracking['location'])): ?>
                         • <?= encode($latestTracking['location']); ?>
                     <?php endif; ?>
@@ -75,20 +87,59 @@ if ($currentStatus === 'cancelled' && !in_array('cancelled', $statusSteps, true)
 </section>
 
 <section class="panel">
-    <h2 style="margin-top: 0;">Shipping Information</h2>
+    <h2 style="margin-top: 0;"><?= $isPickupOrder ? 'Pickup Information' : 'Shipping Information'; ?></h2>
     <div class="order-shipping-info">
-        <div class="order-info-row">
-            <span class="order-info-label">Recipient</span>
-            <span class="order-info-value"><?= encode($order['shipping_name']); ?></span>
-        </div>
-        <div class="order-info-row">
-            <span class="order-info-label">Phone</span>
-            <span class="order-info-value"><?= encode($order['shipping_phone']); ?></span>
-        </div>
-        <div class="order-info-row">
-            <span class="order-info-label">Address</span>
-            <span class="order-info-value"><?= nl2br(encode($order['shipping_address'])); ?></span>
-        </div>
+        <?php if ($isPickupOrder): ?>
+            <div class="order-info-row">
+                <span class="order-info-label">Pickup Location</span>
+                <span class="order-info-value">
+                    <i class="fas fa-map-marker-alt" style="color: var(--color-accent); margin-right: 0.5rem;"></i>
+                    <?= encode($order['pickup_location'] ?? '12 Jalan Tanjungyew, Kuala Lumpur'); ?>
+                </span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Recipient Name</span>
+                <span class="order-info-value"><?= encode($order['shipping_name']); ?></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Contact Phone</span>
+                <span class="order-info-value"><?= encode($order['shipping_phone']); ?></span>
+            </div>
+            <?php
+            // Show QR code button prominently for pickup orders
+            $showQrCodeDetail = $isPickupOrder && in_array($currentStatus, ['paid', 'processing', 'picked_up', 'completed'], true);
+            if ($showQrCodeDetail && !is_admin()):
+            ?>
+                <div class="order-info-row" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid var(--color-accent);">
+                    <div style="width: 100%;">
+                        <strong style="display: block; margin-bottom: 0.75rem; color: var(--color-text); font-size: 1rem;">
+                            <i class="fas fa-qrcode" style="color: var(--color-accent); margin-right: 0.5rem;"></i>
+                            Self-Pickup QR Code
+                        </strong>
+                        <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.6;">
+                            Present this QR code to our staff at the pickup location to retrieve your order. Staff will scan the code to locate your items.
+                        </p>
+                        <a href="?module=pickup&action=qr_code&id=<?= $order['id']; ?>" class="btn primary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.85rem 1.5rem; font-size: 1rem; min-height: 48px;">
+                            <i class="fas fa-qrcode"></i>
+                            View & Print QR Code
+                        </a>
+                    </div>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="order-info-row">
+                <span class="order-info-label">Recipient</span>
+                <span class="order-info-value"><?= encode($order['shipping_name']); ?></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Phone</span>
+                <span class="order-info-value"><?= encode($order['shipping_phone']); ?></span>
+            </div>
+            <div class="order-info-row">
+                <span class="order-info-label">Address</span>
+                <span class="order-info-value"><?= nl2br(encode($order['shipping_address'])); ?></span>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
 <?php endif; ?>

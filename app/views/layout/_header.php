@@ -4,6 +4,12 @@
             <img src="<?= asset('app/logo/dblogo.png'); ?>" alt="<?= APP_NAME; ?>" class="logo-img">
         </a>
 
+        <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
         <nav class="nav">
             <a href="?module=shop&action=catalog" class="<?= $this->is_active('shop'); ?>">Products</a>
 

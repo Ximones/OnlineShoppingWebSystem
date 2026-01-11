@@ -709,6 +709,9 @@ class CartController extends Controller
             // Update Order Status
             $this->orders->updateStatus($orderId, 'paid');
 
+            // Generate QR code for pickup orders if needed
+            $this->orders->generateQrCodeIfNeeded($orderId);
+
             // Process points deduction and voucher marking (deferred until payment succeeds)
             // Get order details to find the voucher code that was actually applied
             $orderDetail = $this->orders->detail($orderId);

@@ -19,6 +19,7 @@ class Router {
         'vouchers' => 'VoucherController',
         'bills' => 'BillController',
         'favorites' => 'FavoriteController',
+        'pickup' => 'PickupController',
     ];
 
     public function dispatch(): void {

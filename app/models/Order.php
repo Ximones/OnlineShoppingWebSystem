@@ -71,7 +71,16 @@ class Order
             ];
             $shippingMethodLabel = $shippingMethodLabels[$shippingMethod] ?? 'Standard Shipping (3-5 days)';
 
-            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address, shipping_method, points_discount, voucher_discount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            // Set pickup location for pickup orders (QR code will be generated after order is paid)
+            $pickupLocation = null;
+            $itemLocation = null;
+            
+            if ($shippingMethod === 'pickup') {
+                $pickupLocation = '12 Jalan Tanjungyew, Kuala Lumpur'; // HQ Location
+                $itemLocation = 'Warehouse 1 Rack 1'; // Default item location
+            }
+
+            $stm = $pdo->prepare('INSERT INTO orders (user_id, cart_id, total_amount, status, shipping_name, shipping_phone, shipping_address, shipping_method, points_discount, voucher_discount, pickup_location, item_location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stm->execute([
                 $userId,
                 $cartId,
@@ -83,8 +92,17 @@ class Order
                 $shippingMethodLabel,
                 $pointsDiscount,
                 $voucherDiscount,
+                $pickupLocation,
+                $itemLocation,
             ]);
             $orderId = (int) $pdo->lastInsertId();
+
+            // Generate QR code for pickup orders if order is already paid (PayLater)
+            if ($shippingMethod === 'pickup' && $orderStatus === 'paid') {
+                require_once __DIR__ . '/../lib/qr_code.php';
+                $qrCodeToken = generate_qr_code_token($orderId);
+                $pdo->prepare('UPDATE orders SET qr_code_token = ?, qr_code_generated_at = NOW() WHERE id = ?')->execute([$qrCodeToken, $orderId]);
+            }
 
             foreach ($items as $item) {
                 $stm = $pdo->prepare('INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)');
@@ -471,5 +489,111 @@ class Order
     {
         $stm = $this->db->prepare('DELETE FROM tracking_details WHERE id = ? AND order_id = ?');
         $stm->execute([$trackingId, $orderId]);
+    }
+
+    /**
+     * Find order by QR code token (for staff scanning)
+     */
+    public function findByQrToken(string $token): ?array
+    {
+        $stm = $this->db->prepare('SELECT * FROM orders WHERE qr_code_token = ? LIMIT 1');
+        $stm->execute([$token]);
+        $order = $stm->fetch();
+
+        if (!$order) {
+            return null;
+        }
+
+        // Load order items
+        $sql = '
+        SELECT 
+            oi.*,
+            p.name,
+            pp.photo_path AS photo
+        FROM order_items oi
+        INNER JOIN products p ON p.id = oi.product_id
+        LEFT JOIN product_photos pp 
+            ON pp.product_id = p.id AND pp.is_primary = 1
+        WHERE oi.order_id = ?
+    ';
+
+        $stm = $this->db->prepare($sql);
+        $stm->execute([$order['id']]);
+        $order['items'] = $stm->fetchAll();
+
+        // Get user info
+        $stm = $this->db->prepare('SELECT name, email, phone FROM users WHERE id = ?');
+        $stm->execute([$order['user_id']]);
+        $userInfo = $stm->fetch();
+        $order['customer_name'] = $userInfo['name'] ?? '';
+        $order['customer_email'] = $userInfo['email'] ?? '';
+        $order['customer_phone'] = $userInfo['phone'] ?? '';
+
+        return $order;
+    }
+
+    /**
+     * Confirm pickup - update order status to 'picked_up' and then 'completed'
+     */
+    public function confirmPickup(int $orderId, ?string $remarks = null): void
+    {
+        // Check current status
+        $order = $this->detail($orderId);
+        if (!$order) {
+            throw new \RuntimeException('Order not found');
+        }
+
+        $currentStatus = strtolower($order['status'] ?? '');
+
+        // Can only confirm pickup if order is paid or processing
+        if (!in_array($currentStatus, ['paid', 'processing', 'picked_up'], true)) {
+            throw new \RuntimeException('Order is not in a valid state for pickup confirmation');
+        }
+
+        // Update status to picked_up if not already
+        if ($currentStatus !== 'picked_up') {
+            $this->updateStatus($orderId, 'picked_up');
+            
+            // Add tracking entry
+            $this->addTracking($orderId, 'picked_up', $order['item_location'] ?? 'Warehouse 1 Rack 1', $remarks ?? 'Items picked up by customer');
+        }
+
+        // Update status to completed
+        $this->updateStatus($orderId, 'completed');
+        
+        // Add tracking entry for completion
+        $this->addTracking($orderId, 'completed', $order['pickup_location'] ?? '12 Jalan Tanjungyew, Kuala Lumpur', $remarks ?? 'Order completed after pickup');
+    }
+
+    /**
+     * Generate QR code for an order (call after order is paid if it's a pickup order)
+     * This ensures QR code is generated even for Stripe orders that were created as 'pending'
+     */
+    public function generateQrCodeIfNeeded(int $orderId): void
+    {
+        $order = $this->detail($orderId);
+        if (!$order) {
+            return;
+        }
+
+        // Check if it's a pickup order
+        $shippingMethod = $order['shipping_method'] ?? '';
+        if (stripos($shippingMethod, 'pickup') === false) {
+            return; // Not a pickup order
+        }
+
+        // Check if QR code already exists
+        if (!empty($order['qr_code_token'])) {
+            return; // QR code already generated
+        }
+
+        // Generate QR code
+        require_once __DIR__ . '/../lib/qr_code.php';
+        $qrCodeToken = generate_qr_code_token($orderId);
+        $pickupLocation = '12 Jalan Tanjungyew, Kuala Lumpur';
+        $itemLocation = 'Warehouse 1 Rack 1';
+
+        $stm = $this->db->prepare('UPDATE orders SET qr_code_token = ?, pickup_location = ?, item_location = ?, qr_code_generated_at = NOW() WHERE id = ?');
+        $stm->execute([$qrCodeToken, $pickupLocation, $itemLocation, $orderId]);
     }
 }

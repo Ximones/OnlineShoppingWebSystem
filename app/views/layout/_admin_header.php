@@ -4,6 +4,12 @@
             <img src="<?= asset('app/logo/dblogo.png'); ?>" alt="<?= APP_NAME; ?>" class="logo-img">
         </a>
 
+        <button class="mobile-menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+            <span class="hamburger-line"></span>
+        </button>
+
         <nav class="nav">
             <span class="mode-indicator mode-indicator-admin">
                 <i class="fas fa-shield-alt"></i>
@@ -20,6 +26,7 @@
             <a href="?module=admin&resource=vouchers&action=index">Vouchers</a>
             <a href="?module=admin&resource=orders&action=index">Orders</a>
             <a href="?module=admin&resource=paylater&action=index">PayLater</a>
+            <a href="?module=pickup&action=scan">Scan QR Code</a>
             
             <a href="?module=shop&action=home" class="switch-mode-link">
                 <i class="fas fa-store"></i>

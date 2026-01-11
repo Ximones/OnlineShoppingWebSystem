@@ -52,9 +52,23 @@
                         <span class="order-total-label">Total</span>
                         <span class="order-total-value">RM <?= number_format($order['total_amount'], 2); ?></span>
                     </div>
-                    <a href="?module=orders&action=detail&id=<?= $order['id']; ?>" class="btn secondary btn small">
-                        View Details
-                    </a>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <?php
+                        // Show QR code button for pickup orders in order history
+                        $isPickupOrder = stripos($order['shipping_method'] ?? '', 'pickup') !== false;
+                        $orderStatus = strtolower($order['status'] ?? '');
+                        $showQrCodeInHistory = $isPickupOrder && in_array($orderStatus, ['paid', 'processing', 'picked_up'], true);
+                        if ($showQrCodeInHistory && !is_admin()):
+                        ?>
+                            <a href="?module=pickup&action=qr_code&id=<?= $order['id']; ?>" class="btn primary btn small" style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fas fa-qrcode"></i>
+                                <span>QR Code</span>
+                            </a>
+                        <?php endif; ?>
+                        <a href="?module=orders&action=detail&id=<?= $order['id']; ?>" class="btn secondary btn small">
+                            View Details
+                        </a>
+                    </div>
                 </div>
             </div>
         <?php endforeach; ?>
